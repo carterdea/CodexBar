@@ -56,7 +56,12 @@ final class KickCoordinator {
                 let credentials = try await ClaudeOAuthCredentialsStore.loadWithAutoRefresh()
                 return await ClaudeKickRunner.kick(accessToken: credentials.accessToken)
             } catch {
-                return .noCredentials
+                // Deliberately not `.noCredentials`. Credentials usually live in Claude Code's
+                // Keychain item, and the common failure is revoked or unconsented *access* to a
+                // login that is perfectly valid. Flattening the two would tell the user to sign in
+                // again when the fix is granting access in Settings, so the loader's own wording
+                // is passed through instead.
+                return .failed(message: error.localizedDescription)
             }
         default:
             return .unsupported(reason: L("Starting a session window is not supported for this provider."))
