@@ -347,6 +347,34 @@ struct ClaudeProviderImplementation: ProviderImplementation {
         }
     }
 
+    /// Adds "Start session window" — the fork's kick. Claude's 5-hour window begins with the first
+    /// request rather than on a schedule, so starting it deliberately moves the window boundary to a
+    /// moment the user picked, instead of wherever their next real request happens to land.
+    ///
+    /// This kicks whichever Claude login is currently ambient. Under ClaudeSwap that is the account
+    /// `cswap` has switched to, which is the right one; the accounts it has *not* switched to cannot
+    /// be kicked, because `cswap` owns their credentials and CodexBar never reads them.
+    @MainActor
+    func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry]) {
+        let label = L("Start session window")
+
+        if KickCoordinator.shared.isKicking(.claude) {
+            entries.append(.unavailable(label, L("Starting…")))
+            return
+        }
+
+        // A synthetic placeholder is Claude web standing in for a five-hour lane it did not report,
+        // i.e. no live session — which is exactly when a kick is worth offering.
+        let session = context.store.snapshot(for: context.provider.instanceID)?.primary
+        let isRunning = session.map { !$0.isSyntheticPlaceholder && $0.resetsAt != nil } ?? false
+        if isRunning {
+            entries.append(.unavailable(label, L("A session window is already running.")))
+            return
+        }
+
+        entries.append(.action(label, .kickSession(.claude)))
+    }
+
     @MainActor
     func loginMenuAction(context: ProviderMenuLoginContext)
         -> (label: String, action: MenuDescriptor.MenuAction)?

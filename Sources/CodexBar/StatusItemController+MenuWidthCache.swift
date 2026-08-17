@@ -144,6 +144,8 @@ extension StatusItemController {
             "copyError:\(message)"
         case let .focusAgentSession(session, remoteHost):
             "focusAgentSession:\(remoteHost ?? "local"):\(session.id)"
+        case let .kickSession(provider):
+            "kickSession:\(provider.rawValue)"
         }
     }
 }
