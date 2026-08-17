@@ -424,6 +424,7 @@
 "cursor_on_demand" = "À la demande : %@";
 "cursor_on_demand_with_limit" = "À la demande : %1$@ / %2$@";
 "extra_usage_format" = "Utilisation supplémentaire : %1$@ / %2$@";
+"use_next_format" = "Utilisez %1$@ ensuite — %2$@ utilisé";
 "jetbrains_detected_generate" = "Détecté : %@. Utilisez l'assistant IA une fois pour générer des données de quota, puis actualisez CodexBar.";
 "jetbrains_detected_select" = "Détecté : %@. Sélectionnez votre IDE préféré dans Paramètres, puis actualisez CodexBar.";
 "last_fetch_failed_with_provider" = "La dernière récupération de %@ a échoué :";

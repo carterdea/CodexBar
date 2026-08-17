@@ -424,6 +424,7 @@
 "cursor_on_demand" = "オンデマンド: %@";
 "cursor_on_demand_with_limit" = "オンデマンド: %1$@ / %2$@";
 "extra_usage_format" = "追加使用量: %1$@ / %2$@";
+"use_next_format" = "次は %1$@ を使用 — %2$@ 使用済み";
 "jetbrains_detected_generate" = "検出: %@。AI アシスタントを一度使用してクォータデータを生成してから、CodexBar を更新してください。";
 "jetbrains_detected_select" = "検出: %@。設定でお使いの IDE を選択してから、CodexBar を更新してください。";
 "last_fetch_failed_with_provider" = "前回の %@ の取得に失敗しました:";

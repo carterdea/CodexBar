@@ -435,6 +435,7 @@
 "cursor_on_demand" = "隨用隨付：%@";
 "cursor_on_demand_with_limit" = "隨用隨付：%1$@ / %2$@";
 "extra_usage_format" = "額外使用量：%1$@ / %2$@";
+"use_next_format" = "接下來使用 %1$@ — 已用 %2$@";
 "jetbrains_detected_generate" = "偵測到：%@。使用一次 AI 助手以產生配額資料，然後重新整理 CodexBar。";
 "jetbrains_detected_select" = "偵測到：%@。在設定中選擇你偏好的 IDE，然後重新整理 CodexBar。";
 "last_fetch_failed_with_provider" = "上次取得 %@ 失敗：";

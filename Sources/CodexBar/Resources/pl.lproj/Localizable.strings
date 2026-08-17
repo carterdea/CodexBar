@@ -411,6 +411,7 @@
 "cursor_on_demand" = "Na żądanie: %@";
 "cursor_on_demand_with_limit" = "Na żądanie: %1$@ / %2$@";
 "extra_usage_format" = "Dodatkowe użycie: %1$@ / %2$@";
+"use_next_format" = "Użyj następnie %1$@ — zużyto %2$@";
 "jetbrains_detected_generate" = "Wykryto: %@. Użyj raz asystenta AI, aby wygenerować dane limitu, a następnie odśwież CodexBar.";
 "jetbrains_detected_select" = "Wykryto: %@. Wybierz preferowane IDE w Ustawieniach, a następnie odśwież CodexBar.";
 "last_fetch_failed_with_provider" = "Ostatnie pobranie %@ nie powiodło się:";

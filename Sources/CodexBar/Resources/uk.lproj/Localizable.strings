@@ -424,6 +424,7 @@
 "cursor_on_demand" = "На вимогу: %@";
 "cursor_on_demand_with_limit" = "На вимогу: %1$@ / %2$@";
 "extra_usage_format" = "Додаткове використання: %1$@ / %2$@";
+"use_next_format" = "Далі використовуйте %1$@ — використано %2$@";
 "jetbrains_detected_generate" = "Виявлено: %@. Скористайтеся помічником штучного інтелекту один раз, щоб створити дані квоти, а потім оновіть CodexBar.";
 "jetbrains_detected_select" = "Виявлено: %@. Виберіть бажану IDE у налаштуваннях, а потім оновіть CodexBar.";
 "last_fetch_failed_with_provider" = "Помилка останнього %@ отримання:";

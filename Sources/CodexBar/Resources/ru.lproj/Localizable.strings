@@ -427,6 +427,7 @@
 "cursor_on_demand" = "По требованию: %@";
 "cursor_on_demand_with_limit" = "По требованию: %1$@ / %2$@";
 "extra_usage_format" = "Дополнительное использование: %1$@ / %2$@";
+"use_next_format" = "Далее используйте %1$@ — использовано %2$@";
 "jetbrains_detected_generate" = "Обнаружено: %@. Используйте AI-помощник один раз, чтобы сгенерировать данные о квотах, затем обновите CodexBar.";
 "jetbrains_detected_select" = "Обнаружено: %@. Выберите предпочитаемый IDE в настройках, затем обновите CodexBar.";
 "last_fetch_failed_with_provider" = "Последнее получение %@ не удалось:";

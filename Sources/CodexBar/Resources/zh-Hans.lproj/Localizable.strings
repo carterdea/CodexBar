@@ -437,6 +437,7 @@
 "cursor_on_demand" = "按需计费：%@";
 "cursor_on_demand_with_limit" = "按需计费：%1$@ / %2$@";
 "extra_usage_format" = "额外用量：%1$@ / %2$@";
+"use_next_format" = "接下来使用 %1$@ — 已用 %2$@";
 "jetbrains_detected_generate" = "检测到：%@。使用一次 AI 助手以生成配额数据，然后刷新 CodexBar。";
 "jetbrains_detected_select" = "检测到：%@。在设置中选择你偏好的 IDE，然后刷新 CodexBar。";
 "last_fetch_failed_with_provider" = "上次获取 %@ 失败：";

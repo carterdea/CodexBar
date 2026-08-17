@@ -422,6 +422,7 @@
 "cursor_on_demand" = "Auf Anfrage: %@";
 "cursor_on_demand_with_limit" = "Auf Anfrage: %1$@ / %2$@";
 "extra_usage_format" = "Zusätzliche Nutzung: %1$@ / %2$@";
+"use_next_format" = "Als Nächstes %1$@ verwenden — %2$@ verbraucht";
 "jetbrains_detected_generate" = "Erkannt: %@. Verwenden Sie den KI-Assistenten einmal, um Quotendaten zu generieren, und aktualisieren Sie dann CodexBar.";
 "jetbrains_detected_select" = "Erkannt: %@. Wählen Sie in den Einstellungen Ihre bevorzugte IDE aus und aktualisieren Sie dann CodexBar.";
 "last_fetch_failed_with_provider" = "Der letzte Abruf von %@ ist fehlgeschlagen:";

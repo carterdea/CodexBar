@@ -324,6 +324,12 @@ struct ClaudeProviderImplementation: ProviderImplementation {
             entries.append(.text(L("Weekly usage unavailable for this account."), .secondary))
         }
 
+        // Only claude-swap exposes several Claude accounts with usage attached, so this is the one
+        // place there is a choice to recommend between.
+        if let recommendation = AccountRecommendation.line(for: context.store.claudeSwapAccountSnapshots) {
+            entries.append(.text(recommendation, .primary))
+        }
+
         if let cost = context.snapshot?.providerCost,
            context.settings.showOptionalCreditsAndExtraUsage,
            cost.currencyCode != "Quota"

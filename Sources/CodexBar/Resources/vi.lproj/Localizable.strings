@@ -424,6 +424,7 @@
 "cursor_on_demand" = "Theo yêu cầu: %@";
 "cursor_on_demand_with_limit" = "Theo yêu cầu: %1$@ / %2$@";
 "extra_usage_format" = "Mức sử dụng bổ sung : %1$@ / %2$@";
+"use_next_format" = "Dùng %1$@ tiếp theo — đã dùng %2$@";
 "jetbrains_detected_generate" = "Đã phát hiện: %@ . Sử dụng trợ lý AI một lần để tạo dữ liệu Hạn mức, sau đó làm mới CodexBar .";
 "jetbrains_detected_select" = "Đã phát hiện: %@ . Chọn IDE ưa thích của bạn trong Cài đặt , sau đó làm mới CodexBar .";
 "last_fetch_failed_with_provider" = "Tìm nạp %@ lần cuối không thành công:";

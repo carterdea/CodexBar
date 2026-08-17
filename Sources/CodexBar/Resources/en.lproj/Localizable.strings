@@ -390,6 +390,7 @@
 "cursor_on_demand" = "On-demand: %@";
 "cursor_on_demand_with_limit" = "On-demand: %1$@ / %2$@";
 "extra_usage_format" = "Extra usage: %1$@ / %2$@";
+"use_next_format" = "Use %1$@ next — %2$@ used";
 "jetbrains_detected_generate" = "Detected: %@. Use the AI assistant once to generate quota data, then refresh CodexBar.";
 "jetbrains_detected_select" = "Detected: %@. Select your preferred IDE in Settings, then refresh CodexBar.";
 "last_fetch_failed_with_provider" = "Last %@ fetch failed:";

@@ -425,6 +425,7 @@
 "cursor_on_demand" = "Vid behov: %@";
 "cursor_on_demand_with_limit" = "Vid behov: %1$@ / %2$@";
 "extra_usage_format" = "Extra användning: %1$@ / %2$@";
+"use_next_format" = "Använd %1$@ härnäst — %2$@ använt";
 "jetbrains_detected_generate" = "Hittade: %@. Använd AI-assistenten en gång för att skapa kvotdata och uppdatera sedan CodexBar.";
 "jetbrains_detected_select" = "Hittade: %@. Välj önskad IDE i Inställningar och uppdatera sedan CodexBar.";
 "last_fetch_failed_with_provider" = "Senaste hämtningen för %@ misslyckades:";

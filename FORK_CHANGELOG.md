@@ -30,12 +30,21 @@ appear in that one.
   HTTP call, because the ChatGPT backend starts the window off actual Codex usage. Routed to the
   active account's `CODEX_HOME`, since `codex exec` has no flag to select a login.
 
-### Known upstream failure
+### Added
 
-`StatusMenuSwitcherRefreshTests` / "merged provider switch updates live tab rows in place" is
-**order-dependent and fails in isolation on upstream itself**. Verified against an untouched clone
-of `steipete/CodexBar` at `45ca0b4`: the same two `ObjectIdentifier` expectations fail there with no
-fork changes present.
+- **"Use X next"** — one line in Claude's menu naming the account with the most headroom, when
+  there is a real choice to make. Backed by `AccountRanking`.
+
+### Known upstream failures
+
+Two tests around the merged menu fail **in isolation on upstream itself**, verified against an
+untouched clone of `steipete/CodexBar` at `45ca0b4` with no fork changes present:
+
+- `StatusMenuSwitcherRefreshTests` / "merged provider switch updates live tab rows in place" —
+  the same two `ObjectIdentifier` expectations fail there.
+- `MenuCardViewRecyclingTests` / "merged data tick keeps row count and card views stable" — a
+  data-only repopulate grows the row count by 2. Upstream fails 16 → 18; this fork fails 17 → 19,
+  the same +2 defect offset by the one row the Codex kick adds.
 
 It matters here because `Scripts/ci_swift_test_by_suite.py` batches 12 suites per group, so *adding
 a test file anywhere* can reshuffle groups and flip this test between passing and failing. It passed

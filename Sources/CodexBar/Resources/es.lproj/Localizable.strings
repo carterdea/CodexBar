@@ -428,6 +428,7 @@
 "cursor_on_demand" = "Bajo demanda: %@";
 "cursor_on_demand_with_limit" = "Bajo demanda: %1$@ / %2$@";
 "extra_usage_format" = "Uso adicional: %1$@ / %2$@";
+"use_next_format" = "Usa %1$@ a continuación — %2$@ usado";
 "jetbrains_detected_generate" = "Detectado: %@. Usa el asistente de IA una vez para generar datos de cuota y luego actualiza CodexBar.";
 "jetbrains_detected_select" = "Detectado: %@. Selecciona tu IDE preferido en Ajustes y luego actualiza CodexBar.";
 "last_fetch_failed_with_provider" = "La última obtención de %@ falló:";

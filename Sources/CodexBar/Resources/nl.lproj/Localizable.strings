@@ -424,6 +424,7 @@
 "cursor_on_demand" = "Op aanvraag: %@";
 "cursor_on_demand_with_limit" = "Op aanvraag: %1$@ / %2$@";
 "extra_usage_format" = "Extra verbruik: %1$@ / %2$@";
+"use_next_format" = "Gebruik hierna %1$@ — %2$@ gebruikt";
 "jetbrains_detected_generate" = "Gedetecteerd: %@. Gebruik de AI-assistent één keer om quotagegevens te genereren en vernieuw vervolgens CodexBar.";
 "jetbrains_detected_select" = "Gedetecteerd: %@. Selecteer uw favoriete IDE in Instellingen en vernieuw vervolgens CodexBar.";
 "last_fetch_failed_with_provider" = "Laatste %@ ophaalactie mislukt:";

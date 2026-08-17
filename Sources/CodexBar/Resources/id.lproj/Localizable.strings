@@ -411,6 +411,7 @@
 "cursor_on_demand" = "On-demand: %@";
 "cursor_on_demand_with_limit" = "On-demand: %1$@ / %2$@";
 "extra_usage_format" = "Penggunaan ekstra: %1$@ / %2$@";
+"use_next_format" = "Gunakan %1$@ berikutnya — %2$@ terpakai";
 "jetbrains_detected_generate" = "Terdeteksi: %@. Gunakan asisten AI sekali untuk menghasilkan data kuota, lalu segarkan CodexBar.";
 "jetbrains_detected_select" = "Terdeteksi: %@. Pilih IDE pilihan Anda di Pengaturan, lalu segarkan CodexBar.";
 "last_fetch_failed_with_provider" = "Pengambilan %@ terakhir gagal:";
