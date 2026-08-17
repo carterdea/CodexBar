@@ -93,6 +93,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
             set: { context.settings.claudeSwapShowSingleAccount = $0 })
 
         return [
+            AutoKickToggle.descriptor(),
             ProviderSettingsToggleDescriptor(
                 id: "claude-model-scoped-weekly-usage-visible",
                 title: "Show model-specific weekly usage in widgets",

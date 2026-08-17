@@ -411,6 +411,8 @@
 "cursor_on_demand_with_limit" = "Sota demanda: %1$@ / %2$@";
 "extra_usage_format" = "Ús addicional: %1$@ / %2$@";
 "use_next_format" = "Usa %1$@ a continuació — %2$@ utilitzat";
+"auto_kick_subtitle" = "Envia un missatge curt des del teu compte quan es reinicia un límit setmanal molt utilitzat, perquè la nova finestra comenci de seguida.";
+"Start a new weekly window automatically" = "Inicia una nova finestra setmanal automàticament";
 "jetbrains_detected_generate" = "Detectat: %@. Feu servir l'assistent d'IA una vegada per generar dades de quota i després actualitzeu el CodexBar.";
 "jetbrains_detected_select" = "Detectat: %@. Seleccioneu el vostre IDE preferit a la configuració i després actualitzeu el CodexBar.";
 "last_fetch_failed_with_provider" = "L'última obtenció de %@ ha fallat:";

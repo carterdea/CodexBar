@@ -429,6 +429,8 @@
 "cursor_on_demand_with_limit" = "Bajo demanda: %1$@ / %2$@";
 "extra_usage_format" = "Uso adicional: %1$@ / %2$@";
 "use_next_format" = "Usa %1$@ a continuación — %2$@ usado";
+"auto_kick_subtitle" = "Envía un mensaje corto desde tu cuenta cuando se reinicia un límite semanal muy utilizado, para que la nueva ventana empiece de inmediato.";
+"Start a new weekly window automatically" = "Iniciar una nueva ventana semanal automáticamente";
 "jetbrains_detected_generate" = "Detectado: %@. Usa el asistente de IA una vez para generar datos de cuota y luego actualiza CodexBar.";
 "jetbrains_detected_select" = "Detectado: %@. Selecciona tu IDE preferido en Ajustes y luego actualiza CodexBar.";
 "last_fetch_failed_with_provider" = "La última obtención de %@ falló:";

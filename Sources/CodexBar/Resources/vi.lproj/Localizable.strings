@@ -425,6 +425,8 @@
 "cursor_on_demand_with_limit" = "Theo yêu cầu: %1$@ / %2$@";
 "extra_usage_format" = "Mức sử dụng bổ sung : %1$@ / %2$@";
 "use_next_format" = "Dùng %1$@ tiếp theo — đã dùng %2$@";
+"auto_kick_subtitle" = "Gửi một tin nhắn ngắn từ tài khoản của bạn khi giới hạn hằng tuần dùng nhiều được đặt lại, để cửa sổ mới bắt đầu ngay.";
+"Start a new weekly window automatically" = "Tự động bắt đầu cửa sổ hằng tuần mới";
 "jetbrains_detected_generate" = "Đã phát hiện: %@ . Sử dụng trợ lý AI một lần để tạo dữ liệu Hạn mức, sau đó làm mới CodexBar .";
 "jetbrains_detected_select" = "Đã phát hiện: %@ . Chọn IDE ưa thích của bạn trong Cài đặt , sau đó làm mới CodexBar .";
 "last_fetch_failed_with_provider" = "Tìm nạp %@ lần cuối không thành công:";

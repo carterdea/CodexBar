@@ -34,6 +34,11 @@ appear in that one.
 
 - **"Use X next"** — one line in Claude's menu naming the account with the most headroom, when
   there is a real choice to make. Backed by `AccountRanking`.
+- **Automatic weekly kick**, off by default. When a heavily used weekly window turns over, start
+  its replacement immediately. Detection is upstream's existing weekly-reset signal; the fork adds
+  the "was that window worth replacing" guard, since the reset event reports the percentage *after*
+  the reset. Enabled state and the weekly high-water mark live in a fork-owned store, so no shared
+  settings file is touched.
 
 ### Known upstream failures
 
@@ -45,6 +50,11 @@ untouched clone of `steipete/CodexBar` at `45ca0b4` with no fork changes present
 - `MenuCardViewRecyclingTests` / "merged data tick keeps row count and card views stable" — a
   data-only repopulate grows the row count by 2. Upstream fails 16 → 18; this fork fails 17 → 19,
   the same +2 defect offset by the one row the Codex kick adds.
+
+Separately, `CostUsageFetcherUnknownModelPricingTests` **passes but takes ~106s for six tests**
+against the sharded runner's 180s per-group limit, so `make test` fails with exit 124 whenever the
+machine is otherwise busy. Nothing is wrong with the code under test; the margin is just thin.
+Do not run a build alongside `make test` — that alone is enough to tip it over.
 
 It matters here because `Scripts/ci_swift_test_by_suite.py` batches 12 suites per group, so *adding
 a test file anywhere* can reshuffle groups and flip this test between passing and failing. It passed

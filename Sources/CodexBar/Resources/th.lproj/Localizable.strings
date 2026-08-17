@@ -412,6 +412,8 @@
 "cursor_on_demand_with_limit" = "ตามความต้องการ: %1$@ / %2$@";
 "extra_usage_format" = "การใช้งานเพิ่มเติม: %1$@ / %2$@";
 "use_next_format" = "ใช้ %1$@ ต่อไป — ใช้ไปแล้ว %2$@";
+"auto_kick_subtitle" = "ส่งข้อความสั้น ๆ จากบัญชีของคุณเมื่อขีดจำกัดรายสัปดาห์ที่ใช้งานหนักถูกรีเซ็ต เพื่อให้หน้าต่างใหม่เริ่มทันที";
+"Start a new weekly window automatically" = "เริ่มหน้าต่างรายสัปดาห์ใหม่โดยอัตโนมัติ";
 "jetbrains_detected_generate" = "ตรวจพบ: %@ ใช้ผู้ช่วย AI หนึ่งครั้งเพื่อสร้างข้อมูลโควต้า จากนั้นรีเฟรช CodexBar";
 "jetbrains_detected_select" = "ตรวจพบ: %@ เลือก IDE ที่คุณต้องการในการตั้งค่า จากนั้นรีเฟรช CodexBar";
 "last_fetch_failed_with_provider" = "การดึงข้อมูล %@ ครั้งล่าสุดล้มเหลว:";
