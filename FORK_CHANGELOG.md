@@ -26,3 +26,18 @@ appear in that one.
 
 - **Kick a Claude account** — send one minimal message so the 5-hour session window starts now
   instead of whenever the next real request lands. `Sources/CodexBarCore/Kick/`.
+
+### Known upstream failure
+
+`StatusMenuSwitcherRefreshTests` / "merged provider switch updates live tab rows in place" is
+**order-dependent and fails in isolation on upstream itself**. Verified against an untouched clone
+of `steipete/CodexBar` at `45ca0b4`: the same two `ObjectIdentifier` expectations fail there with no
+fork changes present.
+
+It matters here because `Scripts/ci_swift_test_by_suite.py` batches 12 suites per group, so *adding
+a test file anywhere* can reshuffle groups and flip this test between passing and failing. It passed
+in a full run before `MenuDescriptorClaudeKickTests` was added and failed in the run after — the new
+tests were the trigger, not the cause.
+
+Until it is fixed upstream, a red `make test` should be checked against this one test before it is
+treated as a regression.
