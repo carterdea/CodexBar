@@ -50,6 +50,10 @@ final class KickCoordinator {
     // MARK: - Internals
 
     private static func run(provider: UsageProvider) async -> KickOutcome {
+        // Provider-specific by design: how a session window is started is not derivable from
+        // provider metadata. Claude begins one with an inference request; Codex begins one by
+        // running its CLI. Each provider that gains a kick has to say how, so this dispatch is
+        // the feature rather than an unfactored special case.
         switch provider {
         case .claude:
             do {
