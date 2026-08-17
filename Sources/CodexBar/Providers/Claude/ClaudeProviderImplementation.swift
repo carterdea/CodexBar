@@ -356,23 +356,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
     /// be kicked, because `cswap` owns their credentials and CodexBar never reads them.
     @MainActor
     func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry]) {
-        let label = L("Start session window")
-
-        if KickCoordinator.shared.isKicking(.claude) {
-            entries.append(.unavailable(label, L("Starting…")))
-            return
-        }
-
-        // A synthetic placeholder is Claude web standing in for a five-hour lane it did not report,
-        // i.e. no live session — which is exactly when a kick is worth offering.
-        let session = context.store.snapshot(for: context.provider.instanceID)?.primary
-        let isRunning = session.map { !$0.isSyntheticPlaceholder && $0.resetsAt != nil } ?? false
-        if isRunning {
-            entries.append(.unavailable(label, L("A session window is already running.")))
-            return
-        }
-
-        entries.append(.action(label, .kickSession(.claude)))
+        entries.append(KickMenuEntry.make(provider: context.provider, store: context.store))
     }
 
     @MainActor

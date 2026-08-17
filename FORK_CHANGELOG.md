@@ -26,6 +26,9 @@ appear in that one.
 
 - **Kick a Claude account** — send one minimal message so the 5-hour session window starts now
   instead of whenever the next real request lands. `Sources/CodexBarCore/Kick/`.
+- **Kick a Codex account** — same idea, but it has to be a throwaway `codex exec` rather than an
+  HTTP call, because the ChatGPT backend starts the window off actual Codex usage. Routed to the
+  active account's `CODEX_HOME`, since `codex exec` has no flag to select a login.
 
 ### Known upstream failure
 

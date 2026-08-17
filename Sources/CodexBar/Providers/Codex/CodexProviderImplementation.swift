@@ -284,6 +284,10 @@ struct CodexProviderImplementation: ProviderImplementation {
 
     @MainActor
     func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry]) {
+        // Ahead of the account-switcher guards below: the kick is about this machine's active
+        // login, so it stays available even when there is no second account to switch between.
+        entries.append(KickMenuEntry.make(provider: context.provider, store: context.store))
+
         let projection = context.settings.codexVisibleAccountProjection
         guard !projection.visibleAccounts.isEmpty else { return }
 

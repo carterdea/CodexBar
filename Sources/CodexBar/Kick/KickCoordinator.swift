@@ -35,7 +35,7 @@ final class KickCoordinator {
         Task { @MainActor in
             defer { self.inFlight.remove(provider) }
 
-            let outcome = await Self.run(provider: provider)
+            let outcome = await Self.run(provider: provider, settings: store.settings)
             self.logger.info(
                 "kick finished",
                 metadata: ["provider": provider.rawValue, "outcome": String(describing: outcome)])
@@ -49,7 +49,7 @@ final class KickCoordinator {
 
     // MARK: - Internals
 
-    private static func run(provider: UsageProvider) async -> KickOutcome {
+    private static func run(provider: UsageProvider, settings: SettingsStore) async -> KickOutcome {
         // Provider-specific by design: how a session window is started is not derivable from
         // provider metadata. Claude begins one with an inference request; Codex begins one by
         // running its CLI. Each provider that gains a kick has to say how, so this dispatch is
@@ -67,9 +67,22 @@ final class KickCoordinator {
                 // is passed through instead.
                 return .failed(message: error.localizedDescription)
             }
+        case .codex:
+            // `codex exec` takes its login from $CODEX_HOME and has no flag to pick an account, so
+            // the kick has to land in the home of whichever account is currently active or it
+            // silently starts a window on the wrong one.
+            return await CodexKickRunner.kick(codexHome: self.activeCodexHome(settings: settings))
         default:
             return .unsupported(reason: L("Starting a session window is not supported for this provider."))
         }
+    }
+
+    /// `nil` means the ambient login in `~/.codex`, which is what the CLI uses with no override.
+    private static func activeCodexHome(settings: SettingsStore) -> String? {
+        guard case let .managedAccount(id) = settings.codexResolvedActiveSource else { return nil }
+        return settings.codexAccountReconciliationSnapshot.storedAccounts
+            .first { $0.id == id }?
+            .managedHomePath
     }
 
     /// Every outcome is said out loud. A kick spends quota on the user's own account, so silence
