@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+REPO_ROOT := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
 
 .PHONY: build check docs-list format lint release restart start start-debug start-release stop test test-live test-tty
 
@@ -11,7 +12,7 @@ start-debug:
 start-release:
 	./Scripts/package_app.sh release
 	pkill -x CodexBar || pkill -f CodexBar.app || true
-	cd /Users/steipete/Projects/codexbar && open -n /Users/steipete/Projects/codexbar/CodexBar.app
+	cd "$(REPO_ROOT)" && open -n "$(REPO_ROOT)/CodexBar.app"
 
 restart: start
 
