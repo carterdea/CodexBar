@@ -22,7 +22,7 @@ appear in that one.
   existing Keychain cache entries and config, and loses iCloud Sync until a CloudKit container is
   provisioned. It is a separate change, not a prerequisite for anything here.
 
-### Added
+### Added — starting a session window
 
 - **Kick a Claude account** — send one minimal message so the 5-hour session window starts now
   instead of whenever the next real request lands. `Sources/CodexBarCore/Kick/`.
@@ -30,7 +30,7 @@ appear in that one.
   HTTP call, because the ChatGPT backend starts the window off actual Codex usage. Routed to the
   active account's `CODEX_HOME`, since `codex exec` has no flag to select a login.
 
-### Added
+### Added — account selection and automation
 
 - **"Use X next"** — one line in Claude's menu naming the account with the most headroom, when
   there is a real choice to make. Backed by `AccountRanking`.

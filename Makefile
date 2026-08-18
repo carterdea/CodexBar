@@ -10,7 +10,7 @@ start-debug:
 	./Scripts/compile_and_run.sh
 
 start-release:
-	./Scripts/package_app.sh release
+	"$(REPO_ROOT)/Scripts/package_app.sh" release
 	pkill -x CodexBar || pkill -f CodexBar.app || true
 	cd "$(REPO_ROOT)" && open -n "$(REPO_ROOT)/CodexBar.app"
 

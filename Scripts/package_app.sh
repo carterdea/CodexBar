@@ -531,7 +531,15 @@ elif [[ "$ALLOW_LLDB" == "1" ]]; then
   CODESIGN_ID="-"
   CODESIGN_ARGS=(--force --sign "$CODESIGN_ID")
 else
-  CODESIGN_ID="${APP_IDENTITY:-Developer ID Application: Peter Steinberger (Y5PE65HELJ)}"
+  # Fork: no default identity. Upstream fell back to its author's Developer ID here, which in a
+  # fork means an identity-signed build silently attempts to sign as someone else. Fail closed;
+  # ad-hoc signing is the path that needs no identity.
+  if [[ -z "${APP_IDENTITY:-}" ]]; then
+    echo "ERROR: APP_IDENTITY is unset and this fork has no default signing identity." >&2
+    echo "       Set APP_IDENTITY to your own Developer ID, or package ad-hoc." >&2
+    exit 1
+  fi
+  CODESIGN_ID="$APP_IDENTITY"
   CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$CODESIGN_ID")
 fi
 function resign() { codesign "${CODESIGN_ARGS[@]}" "$1"; }
