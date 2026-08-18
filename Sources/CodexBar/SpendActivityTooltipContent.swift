@@ -38,8 +38,9 @@ enum SpendActivityTooltipFormatting {
     /// token cell is empty, which is the gate the whole line is omitted on.
     static func providerLine(name: String, tokens: Int, costUSD: Double) -> String? {
         guard let tokenCell = self.tokenCell(tokens: tokens, costUSD: costUSD) else { return nil }
-        let money = self.moneyCell(costUSD: costUSD)
-        return money.isEmpty ? "\(name) \(tokenCell)" : "\(name) \(tokenCell) \(money)"
+        return [name, tokenCell, self.moneyCell(costUSD: costUSD)]
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
     }
 
     static func content(

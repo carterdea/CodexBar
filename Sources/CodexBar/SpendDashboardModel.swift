@@ -859,7 +859,7 @@ extension SpendDashboardModel {
             let existing = merged[summary.provider]
             let tokens = SpendActivitySeries.saturatingAdd(
                 existing?.tokens ?? 0,
-                max(summary.tokens(on: day) ?? 0, 0))
+                summary.tokens(on: day) ?? 0)
             merged[summary.provider] = ProviderActivity(
                 provider: summary.provider,
                 displayName: existing?.displayName ?? summary.providerName,

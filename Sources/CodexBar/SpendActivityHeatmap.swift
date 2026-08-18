@@ -50,9 +50,7 @@ struct SpendActivitySeries {
         self.daily = daily
         self.isCovered = isCovered
         self.isScanned = isScanned ?? [Bool](repeating: true, count: daily.count)
-        self.providers = providers ?? [[SpendDashboardModel.ProviderActivity]](
-            repeating: [],
-            count: daily.count)
+        self.providers = providers ?? Array(repeating: [], count: daily.count)
         self.start = start
         self.rangeStart = rangeStart
         self.today = today
@@ -187,7 +185,7 @@ struct SpendActivitySeries {
     /// The same year narrowed to its last `weeks` columns, for surfaces too narrow to draw 53 of
     /// them at a readable cell size. Today keeps the last column, which is how the grid marks it.
     func trailingWeeks(_ weeks: Int) -> Self {
-        let columns = max(1, min(weeks, Self.weekCount))
+        let columns = max(1, weeks)
         guard columns < Self.weekCount else { return self }
         let dropped = (Self.weekCount - columns) * Self.dayCount
         let start = self.calendar.date(byAdding: .day, value: dropped, to: self.start) ?? self.start
@@ -332,7 +330,7 @@ struct SpendActivityGridGeometry {
     static func tooltipHeight(detailLineCount: Int) -> CGFloat {
         self.tooltipVerticalPadding * 2
             + self.tooltipDayLineHeight
-            + CGFloat(max(detailLineCount, 0)) * self.tooltipDetailLineHeight
+            + CGFloat(detailLineCount) * self.tooltipDetailLineHeight
     }
 
     static func gridFrame(containerWidth: CGFloat, columns: Int = SpendActivitySeries.weekCount) -> CGRect {
