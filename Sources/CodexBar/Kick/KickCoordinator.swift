@@ -62,6 +62,53 @@ final class KickCoordinator {
         }
     }
 
+    /// Kicks one specific Claude token account and reports the outcome, or returns `nil` when a
+    /// Claude kick was already in flight and this one was dropped.
+    ///
+    /// Separate from ``kick(provider:store:trigger:)`` because that path resolves *the* Claude
+    /// credential — the single ambient Claude Code login — and has no parameter that could point it
+    /// at a different account. A token account is the one addressable Claude credential CodexBar
+    /// holds, because the user pasted it in themselves; nothing here reads Claude Code storage,
+    /// claude-swap storage, or the Keychain, so no dialog can appear and no credential boundary
+    /// moves. See `docs/claude-multi-account-and-status-items.md`.
+    ///
+    /// Occupancy is still per provider rather than per account: two Claude messages at once is the
+    /// thing being prevented, and which account they land on does not change that.
+    ///
+    /// The outcome is returned rather than announced because the caller knows why it asked. A
+    /// prewarm has to say which account it touched and what made it act, and the generic "Session
+    /// window started." would not.
+    func kickClaudeTokenAccount(_ account: ProviderTokenAccount, store: UsageStore) async -> KickOutcome? {
+        // Provider-specific by design: Claude is the only provider whose session window both
+        // begins with a request and has a per-account credential CodexBar can address. Codex
+        // starts its window by running a CLI in one account's $CODEX_HOME, which cannot target an
+        // account that is not already active, so there is nothing here to share between the two.
+        let provider = UsageProvider.claude
+        guard !self.inFlight.contains(provider) else {
+            self.logger.info("token-account kick ignored: already in flight")
+            return nil
+        }
+        self.inFlight.insert(provider)
+        defer { self.inFlight.remove(provider) }
+
+        let outcome: KickOutcome = if let token = ClaudeCredentialRouting
+            .resolve(tokenAccountToken: account.token, manualCookieHeader: nil)
+            .oauthAccessToken
+        {
+            await ClaudeKickRunner.kick(accessToken: token)
+        } else {
+            // Web cookies and admin API keys are also stored as Claude token accounts, and neither
+            // can send an inference request. Saying so beats a confusing HTTP failure.
+            .unsupported(reason: L("Only Claude OAuth token accounts can start a session window."))
+        }
+
+        self.logger.info("token-account kick finished", metadata: ["outcome": outcome.logName])
+        if outcome.warrantsRefresh {
+            await store.refreshProvider(provider)
+        }
+        return outcome
+    }
+
     // MARK: - Internals
 
     private static func run(

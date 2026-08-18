@@ -430,6 +430,10 @@
 "extra_usage_format" = "Uso adicional: %1$@ / %2$@";
 "use_next_format" = "Usa %1$@ a continuación — %2$@ usado";
 "auto_kick_subtitle" = "Envía un mensaje corto desde tu cuenta cuando se reinicia un límite semanal muy utilizado, para que la nueva ventana empiece de inmediato.";
+"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
+"Start the next account's session window automatically" = "Start the next account's session window automatically";
+"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
+"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
 "Start a new weekly window automatically" = "Iniciar una nueva ventana semanal automáticamente";
 "jetbrains_detected_generate" = "Detectado: %@. Usa el asistente de IA una vez para generar datos de cuota y luego actualiza CodexBar.";
 "jetbrains_detected_select" = "Detectado: %@. Selecciona tu IDE preferido en Ajustes y luego actualiza CodexBar.";

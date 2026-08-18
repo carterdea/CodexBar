@@ -412,6 +412,10 @@
 "extra_usage_format" = "Ús addicional: %1$@ / %2$@";
 "use_next_format" = "Usa %1$@ a continuació — %2$@ utilitzat";
 "auto_kick_subtitle" = "Envia un missatge curt des del teu compte quan es reinicia un límit setmanal molt utilitzat, perquè la nova finestra comenci de seguida.";
+"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
+"Start the next account's session window automatically" = "Start the next account's session window automatically";
+"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
+"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
 "Start a new weekly window automatically" = "Inicia una nova finestra setmanal automàticament";
 "jetbrains_detected_generate" = "Detectat: %@. Feu servir l'assistent d'IA una vegada per generar dades de quota i després actualitzeu el CodexBar.";
 "jetbrains_detected_select" = "Detectat: %@. Seleccioneu el vostre IDE preferit a la configuració i després actualitzeu el CodexBar.";

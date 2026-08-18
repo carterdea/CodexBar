@@ -34,6 +34,29 @@ appear in that one.
 
 - **"Use X next"** — one line in Claude's menu naming the account with the most headroom, when
   there is a real choice to make. Backed by `AccountRanking`.
+- **Auto-prewarm**, off by default. When the Claude account you are working in nears its limit,
+  start a dormant one's 5-hour clock so the switch lands on a window that is already running.
+  Activity is detected from the live refresh stream rather than `PlanUtilizationHistoryStore`,
+  which canonicalises samples into hourly buckets and so can never show a rise inside 30 minutes.
+  The decision is `AutoPrewarmDecision`; the cooldown lives beside the auto-kick state.
+
+  **It reaches Claude token accounts only** — the ones whose OAuth token you pasted into CodexBar.
+  `claude-swap` accounts keep their credentials inside the `cswap` subprocess and hand CodexBar
+  percentages only, so the app has nothing to send a message with; reaching one would mean either
+  becoming a second credential vault or switching the machine's live Claude login in the
+  background, both ruled out by `docs/claude-multi-account-and-status-items.md`. With no OAuth
+  token accounts configured, the feature never fires.
+
+  It also needs the per-account usage numbers upstream only fetches under the stacked
+  multi-account layout with more than one account (`UsageStore.shouldFetchAllTokenAccounts`).
+  Below that bar there is never both an active account and a distinct candidate, so it declines.
+
+  Two `ProviderArchitectureGatekeeperTests` findings fixed along the way were already red on
+  `main`, not caused by this work: `AutoKickCoordinator.swift`'s `[.claude, .codex]` loop had no
+  justification comment, and `KickCoordinator.swift`'s `case .codex:` sits 17 lines after
+  `case .claude:` — past the scanner's 12-line cluster gap — so it forms its own cluster and needs
+  its own. Both now carry one.
+
 - **Automatic weekly kick**, off by default. When a heavily used weekly window turns over, start
   its replacement immediately. Detection is upstream's existing weekly-reset signal; the fork adds
   the "was that window worth replacing" guard, since the reset event reports the percentage *after*

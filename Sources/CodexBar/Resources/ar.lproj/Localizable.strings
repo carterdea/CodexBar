@@ -413,6 +413,10 @@
 "extra_usage_format" = "الاستخدام الإضافي: %1$@ / %2$@";
 "use_next_format" = "استخدم %1$@ بعد ذلك — تم استخدام %2$@";
 "auto_kick_subtitle" = "يرسل رسالة قصيرة من حسابك عند إعادة تعيين حد أسبوعي مستخدم بكثافة، لكي تبدأ النافذة الجديدة فورًا.";
+"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
+"Start the next account's session window automatically" = "Start the next account's session window automatically";
+"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
+"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
 "Start a new weekly window automatically" = "بدء نافذة أسبوعية جديدة تلقائيًا";
 "jetbrains_detected_generate" = "تم اكتشاف: %@. استخدم مساعد الذكاء الاصطناعي مرة واحدة لتوليد بيانات الحصص، ثم قم بتحديث CodexBar.";
 "jetbrains_detected_select" = "تم اكتشاف: %@. اختر IDE المفضل لديك في الإعدادات، ثم قم بتحديث CodexBar.";

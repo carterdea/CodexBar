@@ -15,6 +15,8 @@ final class AutoKickStore {
     private let enabledKey = "fork.autoKick.enabled"
     private let peaksKey = "fork.autoKick.weeklyPeaks"
     private let kickedKey = "fork.autoKick.lastKickedAt"
+    private let prewarmEnabledKey = "fork.autoPrewarm.enabled"
+    private let prewarmedKey = "fork.autoPrewarm.lastPrewarmedAt"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -129,5 +131,42 @@ final class AutoKickStore {
         var kicked = self.defaults.dictionary(forKey: self.kickedKey) ?? [:]
         kicked[key] = NSNumber(value: date.timeIntervalSince1970)
         self.defaults.set(kicked, forKey: self.kickedKey)
+    }
+
+    // MARK: - Prewarm
+
+    /// Off by default, for the same reason as ``isEnabled`` and one more: this one sends its
+    /// message on an account the user is not even looking at.
+    var isPrewarmEnabled: Bool {
+        get { self.defaults.bool(forKey: self.prewarmEnabledKey) }
+        set { self.defaults.set(newValue, forKey: self.prewarmEnabledKey) }
+    }
+
+    func lastPrewarmedAt(for key: String) -> Date? {
+        guard let seconds = (self.defaults.dictionary(forKey: self.prewarmedKey)?[key] as? NSNumber)?.doubleValue
+        else { return nil }
+        return Date(timeIntervalSince1970: seconds)
+    }
+
+    /// The most recent prewarm of *any* account, derived from the same map rather than tracked
+    /// separately so the two can never disagree about what happened.
+    func lastPrewarmOfAnyAccountAt() -> Date? {
+        let seconds = (self.defaults.dictionary(forKey: self.prewarmedKey) ?? [:])
+            .values
+            .compactMap { ($0 as? NSNumber)?.doubleValue }
+            .max()
+        return seconds.map { Date(timeIntervalSince1970: $0) }
+    }
+
+    /// Kept separate from ``recordAutoKick(at:for:)`` because the two answer different questions and
+    /// have different intervals — twelve hours for a weekly turnover, five for a session window.
+    /// Sharing one timestamp would let either feature silence the other.
+    ///
+    /// Written *before* the message is sent, on the same reasoning: over-recording costs a missed
+    /// prewarm, under-recording costs a second message on an account nobody is watching.
+    func recordPrewarm(at date: Date, for key: String) {
+        var prewarmed = self.defaults.dictionary(forKey: self.prewarmedKey) ?? [:]
+        prewarmed[key] = NSNumber(value: date.timeIntervalSince1970)
+        self.defaults.set(prewarmed, forKey: self.prewarmedKey)
     }
 }

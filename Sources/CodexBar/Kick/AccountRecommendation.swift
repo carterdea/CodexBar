@@ -6,13 +6,8 @@ extension ProviderAccountUsageSnapshot: RankableAccount {
         self.displayLabel
     }
 
-    /// Every window the account reported, flattened. `NamedRateWindow.usageKnown` is dropped here
-    /// because an unknown value carries no percent worth ranking on.
     public var rankingWindows: [RateWindow] {
-        guard let snapshot else { return [] }
-        var windows = [snapshot.primary, snapshot.secondary, snapshot.tertiary].compactMap(\.self)
-        windows.append(contentsOf: (snapshot.extraRateWindows ?? []).filter(\.usageKnown).map(\.window))
-        return windows
+        self.snapshot?.rankableWindows ?? []
     }
 
     /// An approximation of "cannot be relied on". Upstream does not model re-auth as its own state
