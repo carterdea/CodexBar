@@ -131,6 +131,7 @@ final class StatusItemController: NSObject, NSMenuDelegate, StatusItemControllin
 
     let agentSessions: AgentSessionsStore
     lazy var menuCardRefreshMonitor = self.makeMenuCardRefreshMonitor()
+    lazy var spendActivity = self.makeSpendActivityController()
 
     let account: AccountInfo
     let updater: UpdaterProviding
@@ -911,8 +912,7 @@ final class StatusItemController: NSObject, NSMenuDelegate, StatusItemControllin
     }
 
     func isVisible(_ provider: UsageProvider) -> Bool {
-        self.store.debugForceAnimation || self.isEnabled(provider)
-            || self.fallbackProvider == provider
+        self.store.debugForceAnimation || self.isEnabled(provider) || self.fallbackProvider == provider
     }
 
     var shouldMergeIcons: Bool {

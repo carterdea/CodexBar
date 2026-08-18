@@ -1412,6 +1412,8 @@
 
 "Cumulative" = "累計";
 "Token activity" = "トークンアクティビティ";
+"tok" = "トークン";
+"no usage" = "使用なし";
 "View" = "表示";
 "in the last year" = "過去1年";
 "No activity in the last 12 months" = "過去12か月にアクティビティなし";

@@ -1410,6 +1410,8 @@
 
 "Cumulative" = "Kumulativt";
 "Token activity" = "Token-aktivitet";
+"tok" = "tok";
+"no usage" = "ingen användning";
 "View" = "Vy";
 "in the last year" = "det senaste året";
 "No activity in the last 12 months" = "Ingen aktivitet de senaste 12 månaderna";

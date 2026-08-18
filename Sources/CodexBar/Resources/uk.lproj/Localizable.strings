@@ -1411,6 +1411,8 @@
 
 "Cumulative" = "Наростаючим підсумком";
 "Token activity" = "Активність токенів";
+"tok" = "ток";
+"no usage" = "немає використання";
 "View" = "Вигляд";
 "in the last year" = "за останній рік";
 "No activity in the last 12 months" = "Немає активності за останні 12 місяців";

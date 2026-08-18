@@ -1411,6 +1411,8 @@
 
 "Cumulative" = "Acumulado";
 "Token activity" = "Actividade de tokens";
+"tok" = "tok";
+"no usage" = "sen uso";
 "View" = "Vista";
 "in the last year" = "no último ano";
 "No activity in the last 12 months" = "Sen actividade nos últimos 12 meses";

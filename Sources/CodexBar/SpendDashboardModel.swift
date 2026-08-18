@@ -81,6 +81,16 @@ struct SpendDashboardModel: Equatable, Sendable {
         }
     }
 
+    /// One provider's share of a single day, merged across every account that provider owns.
+    /// Tokens and cost are separate readings of the same day: an archive can price a day it has
+    /// no token buckets for, which is why a zero token count with a cost is still worth a line.
+    struct ProviderActivity: Equatable, Sendable {
+        let provider: UsageProvider
+        let displayName: String
+        let tokens: Int
+        let costUSD: Double
+    }
+
     struct TokenActivityPoint: Identifiable, Equatable, Sendable {
         let day: Date
         /// `nil` means at least one included source cannot establish coverage for this day.
@@ -90,11 +100,21 @@ struct SpendDashboardModel: Equatable, Sendable {
         /// rather than missing data. A `nil` total with `true` means every source scanned the day
         /// and still cannot report it, which is a real gap the heatmap must keep visible.
         let isScanned: Bool
+        /// Providers that did something on this day, sorted by display name so a cell keeps the
+        /// same reading order every day. A provider with neither tokens nor cost carries no line
+        /// and is not listed. Empty on days no source can report.
+        let providers: [ProviderActivity]
 
-        init(day: Date, totalTokens: Int?, isScanned: Bool = true) {
+        init(
+            day: Date,
+            totalTokens: Int?,
+            isScanned: Bool = true,
+            providers: [ProviderActivity] = [])
+        {
             self.day = day
             self.totalTokens = totalTokens
             self.isScanned = isScanned
+            self.providers = providers
         }
 
         var id: Date {
@@ -215,31 +235,6 @@ struct SpendDashboardModel: Equatable, Sendable {
         var cost: Double?
         var invalid = false
         var overflowed = false
-    }
-
-    private struct TokenActivityInputSummary {
-        let coveredInterval: ClosedRange<Date>?
-        let totalsByDay: [Date: Int]
-        let invalidDays: Set<Date>
-        let hasCompleteHistory: Bool
-        let isGloballyInvalid: Bool
-
-        /// Whether the scan window reached this day at all. A day outside the window is unknown
-        /// because nobody looked; a day inside it is unknown because the data itself is missing.
-        func scanned(_ day: Date) -> Bool {
-            self.coveredInterval?.contains(day) == true
-        }
-
-        func tokens(on day: Date) -> Int? {
-            guard self.scanned(day),
-                  !self.isGloballyInvalid,
-                  !self.invalidDays.contains(day)
-            else { return nil }
-            if let tokens = self.totalsByDay[day] {
-                return tokens
-            }
-            return self.hasCompleteHistory ? 0 : nil
-        }
     }
 
     private static func buildCurrencyGroup(
@@ -617,104 +612,6 @@ struct SpendDashboardModel: Equatable, Sendable {
         }
     }
 
-    private static func tokenActivity(
-        inputs: [ProviderInput],
-        now: Date,
-        calendar: Calendar) -> [TokenActivityPoint]
-    {
-        guard !inputs.isEmpty else { return [] }
-        let bounds = Self.bounds(days: Self.tokenActivityDayCount, now: now, calendar: calendar)
-        let summaries = inputs.map {
-            Self.tokenActivityInputSummary(input: $0, bounds: bounds, calendar: calendar)
-        }
-        return (0..<Self.tokenActivityDayCount).compactMap { offset in
-            guard let day = calendar.date(byAdding: .day, value: offset, to: bounds.lowerBound) else {
-                return nil
-            }
-            var total = 0
-            for summary in summaries {
-                guard let tokens = summary.tokens(on: day) else {
-                    // Every source must have scanned the day before an unknown counts as a real
-                    // gap. If any source never reached it, this is the edge of a scan window.
-                    return TokenActivityPoint(
-                        day: day,
-                        totalTokens: nil,
-                        isScanned: summaries.allSatisfy { $0.scanned(day) })
-                }
-                let addition = total.addingReportingOverflow(tokens)
-                total = addition.overflow ? Int.max : addition.partialValue
-            }
-            return TokenActivityPoint(day: day, totalTokens: total)
-        }
-    }
-
-    private static func tokenActivityInputSummary(
-        input: ProviderInput,
-        bounds: ClosedRange<Date>,
-        calendar: Calendar) -> TokenActivityInputSummary
-    {
-        let coveredInterval = Self.tokenActivityCoverageInterval(
-            input: input,
-            bounds: bounds,
-            displayCalendar: calendar)
-        var totalsByDay: [Date: Int] = [:]
-        var invalidDays: Set<Date> = []
-        var hasUnplacedTokens = false
-        for entry in input.tokenActivityCache?.daily ?? input.snapshot.daily {
-            guard let day = Self.day(entry.date, provider: input.provider, displayCalendar: calendar) else {
-                hasUnplacedTokens = hasUnplacedTokens || !Self.hasProvenZeroTokens(entry)
-                continue
-            }
-            guard coveredInterval?.contains(day) == true else { continue }
-            guard let tokens = Self.nonnegative(entry.totalTokens) else {
-                invalidDays.insert(day)
-                continue
-            }
-            guard !invalidDays.contains(day) else { continue }
-            let addition = (totalsByDay[day] ?? 0).addingReportingOverflow(tokens)
-            if addition.overflow {
-                totalsByDay.removeValue(forKey: day)
-                invalidDays.insert(day)
-            } else {
-                totalsByDay[day] = addition.partialValue
-            }
-        }
-
-        let hasCompleteHistory = input.tokenActivityCache != nil
-            || Self.hasCompleteTokenHistory(input, displayCalendar: calendar)
-        let aggregateIsInconsistent = input.tokenActivityCache == nil
-            && input.snapshot.last30DaysTokens != nil
-            && !hasCompleteHistory
-        return TokenActivityInputSummary(
-            coveredInterval: coveredInterval,
-            totalsByDay: totalsByDay,
-            invalidDays: invalidDays,
-            hasCompleteHistory: hasCompleteHistory,
-            isGloballyInvalid: hasUnplacedTokens || aggregateIsInconsistent)
-    }
-
-    private static func tokenActivityCoverageInterval(
-        input: ProviderInput,
-        bounds: ClosedRange<Date>,
-        displayCalendar: Calendar) -> ClosedRange<Date>?
-    {
-        guard let cache = input.tokenActivityCache else {
-            return self.coverageInterval(input: input, bounds: bounds, displayCalendar: displayCalendar)
-        }
-        guard let start = Self.day(
-            cache.coverageSinceKey,
-            provider: input.provider,
-            displayCalendar: displayCalendar),
-            let end = Self.day(
-                cache.coverageUntilKey,
-                provider: input.provider,
-                displayCalendar: displayCalendar)
-        else { return nil }
-        let overlapStart = max(bounds.lowerBound, start)
-        let overlapEnd = min(bounds.upperBound, end)
-        return overlapStart <= overlapEnd ? overlapStart...overlapEnd : nil
-    }
-
     private static func bounds(days: Int, now: Date, calendar: Calendar) -> ClosedRange<Date> {
         let end = calendar.startOfDay(for: now)
         let start = calendar.date(byAdding: .day, value: -(days - 1), to: end) ?? end
@@ -875,5 +772,177 @@ struct SpendDashboardModel: Equatable, Sendable {
             return nil
         }
         return result
+    }
+}
+
+/// How the heatmap's 365 days are built: one point per local day, each carrying the day total and
+/// the per-provider split behind it. Kept apart from the window roll-ups in `SpendDashboardModel`
+/// because it answers a different question — what happened on a day, not what a period cost.
+extension SpendDashboardModel {
+    private struct TokenActivityInputSummary {
+        let provider: UsageProvider
+        let providerName: String
+        let coveredInterval: ClosedRange<Date>?
+        let totalsByDay: [Date: Int]
+        let costsByDay: [Date: Double]
+        let invalidDays: Set<Date>
+        let hasCompleteHistory: Bool
+        let isGloballyInvalid: Bool
+
+        /// Whether the scan window reached this day at all. A day outside the window is unknown
+        /// because nobody looked; a day inside it is unknown because the data itself is missing.
+        func scanned(_ day: Date) -> Bool {
+            self.coveredInterval?.contains(day) == true
+        }
+
+        func tokens(on day: Date) -> Int? {
+            guard self.scanned(day),
+                  !self.isGloballyInvalid,
+                  !self.invalidDays.contains(day)
+            else { return nil }
+            if let tokens = self.totalsByDay[day] {
+                return tokens
+            }
+            return self.hasCompleteHistory ? 0 : nil
+        }
+
+        /// Priced spend for the day in USD. Zero covers both "nothing happened" and "nothing was
+        /// priced"; the tooltip renders both as an empty money cell rather than as `$0.00`.
+        func costUSD(on day: Date) -> Double {
+            let cost = self.costsByDay[day] ?? 0
+            return cost.isFinite && cost > 0 ? cost : 0
+        }
+    }
+
+    private static func tokenActivity(
+        inputs: [ProviderInput],
+        now: Date,
+        calendar: Calendar) -> [TokenActivityPoint]
+    {
+        guard !inputs.isEmpty else { return [] }
+        let bounds = Self.bounds(days: Self.tokenActivityDayCount, now: now, calendar: calendar)
+        let summaries = inputs.map {
+            Self.tokenActivityInputSummary(input: $0, bounds: bounds, calendar: calendar)
+        }
+        return (0..<Self.tokenActivityDayCount).compactMap { offset in
+            guard let day = calendar.date(byAdding: .day, value: offset, to: bounds.lowerBound) else {
+                return nil
+            }
+            var total = 0
+            for summary in summaries {
+                guard let tokens = summary.tokens(on: day) else {
+                    // Every source must have scanned the day before an unknown counts as a real
+                    // gap. If any source never reached it, this is the edge of a scan window.
+                    return TokenActivityPoint(
+                        day: day,
+                        totalTokens: nil,
+                        isScanned: summaries.allSatisfy { $0.scanned(day) })
+                }
+                let addition = total.addingReportingOverflow(tokens)
+                total = addition.overflow ? Int.max : addition.partialValue
+            }
+            return TokenActivityPoint(
+                day: day,
+                totalTokens: total,
+                providers: Self.providerActivity(on: day, summaries: summaries))
+        }
+    }
+
+    /// Merges every account of a provider into one line's worth of numbers, then drops the
+    /// providers that have no line to draw. Sorted by display name so the reading order of a
+    /// tooltip never depends on which source happened to load first.
+    private static func providerActivity(
+        on day: Date,
+        summaries: [TokenActivityInputSummary]) -> [ProviderActivity]
+    {
+        var merged: [UsageProvider: ProviderActivity] = [:]
+        for summary in summaries {
+            let existing = merged[summary.provider]
+            let tokens = SpendActivitySeries.saturatingAdd(
+                existing?.tokens ?? 0,
+                max(summary.tokens(on: day) ?? 0, 0))
+            merged[summary.provider] = ProviderActivity(
+                provider: summary.provider,
+                displayName: existing?.displayName ?? summary.providerName,
+                tokens: tokens,
+                costUSD: (existing?.costUSD ?? 0) + summary.costUSD(on: day))
+        }
+        return merged.values
+            .filter { SpendActivityTooltipFormatting.tokenCell(tokens: $0.tokens, costUSD: $0.costUSD) != nil }
+            .sorted { $0.displayName < $1.displayName }
+    }
+
+    private static func tokenActivityInputSummary(
+        input: ProviderInput,
+        bounds: ClosedRange<Date>,
+        calendar: Calendar) -> TokenActivityInputSummary
+    {
+        let coveredInterval = Self.tokenActivityCoverageInterval(
+            input: input,
+            bounds: bounds,
+            displayCalendar: calendar)
+        var totalsByDay: [Date: Int] = [:]
+        var costsByDay: [Date: Double] = [:]
+        var invalidDays: Set<Date> = []
+        var hasUnplacedTokens = false
+        for entry in input.tokenActivityCache?.daily ?? input.snapshot.daily {
+            guard let day = Self.day(entry.date, provider: input.provider, displayCalendar: calendar) else {
+                hasUnplacedTokens = hasUnplacedTokens || !Self.hasProvenZeroTokens(entry)
+                continue
+            }
+            guard coveredInterval?.contains(day) == true else { continue }
+            if let cost = entry.costUSD, cost.isFinite, cost > 0 {
+                costsByDay[day, default: 0] += cost
+            }
+            guard let tokens = Self.nonnegative(entry.totalTokens) else {
+                invalidDays.insert(day)
+                continue
+            }
+            guard !invalidDays.contains(day) else { continue }
+            let addition = (totalsByDay[day] ?? 0).addingReportingOverflow(tokens)
+            if addition.overflow {
+                totalsByDay.removeValue(forKey: day)
+                invalidDays.insert(day)
+            } else {
+                totalsByDay[day] = addition.partialValue
+            }
+        }
+
+        let hasCompleteHistory = input.tokenActivityCache != nil
+            || Self.hasCompleteTokenHistory(input, displayCalendar: calendar)
+        let aggregateIsInconsistent = input.tokenActivityCache == nil
+            && input.snapshot.last30DaysTokens != nil
+            && !hasCompleteHistory
+        return TokenActivityInputSummary(
+            provider: input.provider,
+            providerName: input.modelProviderName,
+            coveredInterval: coveredInterval,
+            totalsByDay: totalsByDay,
+            costsByDay: costsByDay,
+            invalidDays: invalidDays,
+            hasCompleteHistory: hasCompleteHistory,
+            isGloballyInvalid: hasUnplacedTokens || aggregateIsInconsistent)
+    }
+
+    private static func tokenActivityCoverageInterval(
+        input: ProviderInput,
+        bounds: ClosedRange<Date>,
+        displayCalendar: Calendar) -> ClosedRange<Date>?
+    {
+        guard let cache = input.tokenActivityCache else {
+            return self.coverageInterval(input: input, bounds: bounds, displayCalendar: displayCalendar)
+        }
+        guard let start = Self.day(
+            cache.coverageSinceKey,
+            provider: input.provider,
+            displayCalendar: displayCalendar),
+            let end = Self.day(
+                cache.coverageUntilKey,
+                provider: input.provider,
+                displayCalendar: displayCalendar)
+        else { return nil }
+        let overlapStart = max(bounds.lowerBound, start)
+        let overlapEnd = min(bounds.upperBound, end)
+        return overlapStart <= overlapEnd ? overlapStart...overlapEnd : nil
     }
 }

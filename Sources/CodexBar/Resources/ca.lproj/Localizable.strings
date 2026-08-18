@@ -1414,6 +1414,8 @@
 
 "Cumulative" = "Acumulat";
 "Token activity" = "Activitat de tokens";
+"tok" = "tok";
+"no usage" = "sense ús";
 "View" = "Vista";
 "in the last year" = "l'últim any";
 "No activity in the last 12 months" = "Sense activitat en els últims 12 mesos";

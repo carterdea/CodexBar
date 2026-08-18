@@ -73,6 +73,7 @@ extension StatusItemController {
             // producing an infinite open/close/rebuild flicker loop (#2652).
             self.store.noteMenuOpened()
             self.agentSessions.refreshOnMenuOpen()
+            self.refreshSpendActivityForMenuOpen()
         }
 
         let trace = self.beginMenuOperationTrace("menuWillOpen", breadcrumb: "menuWillOpen")
@@ -785,6 +786,7 @@ extension StatusItemController {
             self.addUsageHistoryClusterIfNeeded(to: menu, context: context)
         }
         self.addUserPluginMenuCards(to: menu, width: context.menuWidth)
+        self.addSpendActivityMenuCardIfNeeded(to: menu, width: context.menuWidth)
     }
 
     func addActionableSections(
