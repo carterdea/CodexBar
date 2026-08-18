@@ -61,10 +61,31 @@ final class AutoKickCoordinator {
     /// Keyed on the account's own identity, not just the provider, so a peak cannot be carried
     /// across a switch to a different login. Both the sample and the decision read this from the
     /// same place, so they cannot disagree about which account they mean.
+    ///
+    /// An account with no identity yet gets `nil` rather than a shared placeholder. A placeholder
+    /// would be one bucket that every unidentified login of that provider reads and writes, so
+    /// signing out of a heavy account and into a fresh one would hand the new one the old one's
+    /// peak — and auto-kick would send a message on it for a week it never had. Skipping means
+    /// nothing is sampled until identity is known, which costs at most one window.
     private func peakKey(for provider: UsageProvider) -> String? {
         guard let snapshot = self.usageStore?.snapshot(for: provider.instanceID) else { return nil }
-        let identity = snapshot.identity?.accountEmail ?? snapshot.identity?.accountOrganization ?? "-"
+        guard let identity = snapshot.identity?.accountEmail ?? snapshot.identity?.accountOrganization,
+              !identity.isEmpty
+        else { return nil }
         return "\(provider.rawValue)|\(identity)"
+    }
+
+    /// Identifies the weekly window a sample belongs to, so a peak cannot outlive its window.
+    ///
+    /// The reset instant is the only thing that distinguishes one weekly window from the next, and
+    /// it is already on the snapshot. Without it a peak is just a number: if the app is closed
+    /// across a turnover, no reset event fires, `clearWeeklyPeak` never runs, and the old peak
+    /// survives into a window it did not measure — where `recordWeeklyUsage` keeps the maximum and
+    /// so can never lower it. The next turnover then reads a busy week that never happened.
+    private func windowID(for provider: UsageProvider) -> String? {
+        guard let resetsAt = self.usageStore?.snapshot(for: provider.instanceID)?.secondary?.resetsAt
+        else { return nil }
+        return String(Int(resetsAt.timeIntervalSince1970))
     }
 
     /// The weekly lane is `secondary`. A synthetic placeholder stands in for a lane the provider
@@ -83,10 +104,11 @@ final class AutoKickCoordinator {
     /// leaves the machine.
     private func recordWeeklyUsage() {
         for provider in [UsageProvider.claude, .codex] {
-            guard let key = self.peakKey(for: provider), let percent = self.weeklyPercent(for: provider) else {
-                continue
-            }
-            self.store.recordWeeklyUsage(percent, for: key)
+            guard let key = self.peakKey(for: provider),
+                  let percent = self.weeklyPercent(for: provider),
+                  let windowID = self.windowID(for: provider)
+            else { continue }
+            self.store.recordWeeklyUsage(percent, for: key, windowID: windowID)
         }
     }
 
@@ -94,7 +116,10 @@ final class AutoKickCoordinator {
         guard let usageStore, let key = self.peakKey(for: provider) else { return }
 
         let now = Date()
-        let peak = self.store.weeklyPeak(for: key)
+        // Read against the window that just ended. The snapshot at reset time may already carry
+        // the *next* window's reset instant, in which case the stored peak belongs to neither and
+        // is not evidence about the window being decided.
+        let peak = self.store.peakForEndedWindow(key: key)
         let shouldKick = AutoKickDecision.shouldKick(
             isEnabled: self.store.isEnabled,
             peakPercent: peak,
@@ -115,6 +140,6 @@ final class AutoKickCoordinator {
         // second message on the user's account.
         self.store.recordAutoKick(at: now, for: key)
         self.logger.info("auto-kick starting a new weekly window", metadata: ["provider": provider.rawValue])
-        KickCoordinator.shared.kick(provider: provider, store: usageStore)
+        KickCoordinator.shared.kick(provider: provider, store: usageStore, trigger: .automatic)
     }
 }
