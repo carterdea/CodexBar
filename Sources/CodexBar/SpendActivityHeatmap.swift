@@ -414,9 +414,8 @@ enum SpendActivityDateFormatting {
     /// "Wed, Jun 3" — weekday, month, day, ordered by the resolved locale. A heatmap cell is read
     /// against its column, so the weekday earns its place while the year does not.
     static func weekdayDateString(_ date: Date, locale: Locale? = nil) -> String {
-        let resolved = locale ?? codexBarLocalizedResourceLocale()
         let formatter = DateFormatter()
-        formatter.locale = resolved
+        formatter.locale = locale ?? codexBarLocalizedResourceLocale()
         formatter.setLocalizedDateFormatFromTemplate("EEEMMMd")
         return formatter.string(from: date)
     }

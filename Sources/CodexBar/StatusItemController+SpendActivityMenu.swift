@@ -21,12 +21,10 @@ extension StatusItemController {
     }
 
     /// Called when the menu opens. `update` compares configurations and returns without work when
-    /// nothing moved, so an open that changes nothing costs a comparison rather than a scan.
+    /// nothing moved, so an open that changes nothing costs a comparison rather than a scan. The
+    /// guard runs first so a menu opened with cost tracking off never builds the controller.
     func refreshSpendActivityForMenuOpen() {
-        guard self.settings.costUsageEnabled else {
-            self.spendActivity.stop()
-            return
-        }
+        guard self.settings.costUsageEnabled else { return }
         self.spendActivity.update(configuration: SpendDashboardSource.configuration(
             settings: self.settings,
             store: self.store))
@@ -39,12 +37,13 @@ extension StatusItemController {
         if menu.items.last?.isSeparatorItem != true {
             menu.addItem(.separator())
         }
+        // No height fingerprint: the row is a fixed-column grid, so its height follows the width
+        // the cache already keys on and never the data.
         menu.addItem(self.makeMenuCardItem(
             SpendActivityMenuCardView(points: points, width: width),
             id: Self.spendActivityMenuCardID,
             width: width,
-            heightCacheScope: Self.spendActivityMenuCardID,
-            heightCacheFingerprint: SpendActivityMenuCardView.fingerprint(points: points),
             containsInteractiveControls: true))
+        menu.addItem(.separator())
     }
 }

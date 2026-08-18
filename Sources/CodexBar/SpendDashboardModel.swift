@@ -809,8 +809,7 @@ extension SpendDashboardModel {
         /// Priced spend for the day in USD. Zero covers both "nothing happened" and "nothing was
         /// priced"; the tooltip renders both as an empty money cell rather than as `$0.00`.
         func costUSD(on day: Date) -> Double {
-            let cost = self.costsByDay[day] ?? 0
-            return cost.isFinite && cost > 0 ? cost : 0
+            self.costsByDay[day] ?? 0
         }
     }
 
@@ -867,8 +866,10 @@ extension SpendDashboardModel {
                 tokens: tokens,
                 costUSD: (existing?.costUSD ?? 0) + summary.costUSD(on: day))
         }
+        // Same gate the tooltip omits a line on: a provider with neither tokens nor money has
+        // nothing to say about the day.
         return merged.values
-            .filter { SpendActivityTooltipFormatting.tokenCell(tokens: $0.tokens, costUSD: $0.costUSD) != nil }
+            .filter { $0.tokens > 0 || $0.costUSD > 0 }
             .sorted { $0.displayName < $1.displayName }
     }
 

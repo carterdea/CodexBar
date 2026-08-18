@@ -9,21 +9,10 @@ struct SpendActivityMenuCardView: View {
 
     let points: [SpendDashboardModel.TokenActivityPoint]
     let width: CGFloat
-    let now: Date
-
-    init(
-        points: [SpendDashboardModel.TokenActivityPoint],
-        width: CGFloat,
-        now: Date = Date())
-    {
-        self.points = points
-        self.width = width
-        self.now = now
-    }
 
     var body: some View {
         let series = SpendActivitySeries
-            .make(from: self.points, now: self.now)
+            .make(from: self.points)
             .trailingWeeks(Self.weekCount)
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
@@ -39,13 +28,6 @@ struct SpendActivityMenuCardView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 6)
         .frame(width: self.width, alignment: .leading)
-    }
-
-    /// Identity for the menu's height cache: the row only changes size when the window's shape
-    /// does, so the day count and the trailing day are enough to spot a stale measurement.
-    static func fingerprint(points: [SpendDashboardModel.TokenActivityPoint]) -> String {
-        let last = points.last.map { Int($0.day.timeIntervalSince1970) } ?? 0
-        return "spendActivity:\(points.count):\(last)"
     }
 
     private static func total(_ values: [Int]) -> Int {
