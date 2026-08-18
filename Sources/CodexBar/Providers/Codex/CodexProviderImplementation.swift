@@ -291,21 +291,20 @@ struct CodexProviderImplementation: ProviderImplementation {
         context: ProviderMenuUsageContext,
         entries: inout [ProviderMenuEntry])
     {
-        let rows = context.store.codexAccountSnapshots
-        guard rows.count > 1 else { return }
-
         // A display built from the rows themselves rather than the menu's: the usage context has no
         // controller to ask for one, and every account worth ranking already has a row here.
+        let rows = context.store.codexAccountSnapshots
         let accounts = StatusItemController.projectedCodexAccounts(display: CodexAccountMenuDisplay(
             accounts: rows.map(\.account),
             snapshots: rows,
             activeVisibleAccountID: rows.first { $0.account.isActive }?.id,
             layout: .stacked))
-        guard let recommendation = AccountRecommendation.line(
+        if let recommendation = AccountRecommendation.line(
             for: accounts,
             hidePersonalInfo: context.settings.hidePersonalInfo)
-        else { return }
-        entries.append(.text(recommendation, .primary))
+        {
+            entries.append(.text(recommendation, .primary))
+        }
     }
 
     @MainActor

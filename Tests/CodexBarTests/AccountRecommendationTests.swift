@@ -115,7 +115,7 @@ struct AccountRecommendationTests {
 
     @Test
     func `Codex accounts are ranked by headroom`() throws {
-        let entries = try Self.codexUsageMenuEntries(rows: [
+        let entries = Self.codexUsageMenuEntries(rows: [
             Self.codexRow("busy@example.com", percent: 80, isActive: true),
             Self.codexRow("spare@example.com", percent: 5),
         ])
@@ -129,8 +129,8 @@ struct AccountRecommendationTests {
     }
 
     @Test
-    func `says nothing when the active Codex account already has the most headroom`() throws {
-        let entries = try Self.codexUsageMenuEntries(rows: [
+    func `says nothing when the active Codex account already has the most headroom`() {
+        let entries = Self.codexUsageMenuEntries(rows: [
             Self.codexRow("spare@example.com", percent: 5, isActive: true),
             Self.codexRow("busy@example.com", percent: 80),
         ])
@@ -141,8 +141,8 @@ struct AccountRecommendationTests {
     /// The segmented layout fetches only the active account, so the store holds at most one row and
     /// there is nothing to compare against.
     @Test
-    func `says nothing when only one Codex account has usage`() throws {
-        let entries = try Self.codexUsageMenuEntries(rows: [
+    func `says nothing when only one Codex account has usage`() {
+        let entries = Self.codexUsageMenuEntries(rows: [
             Self.codexRow("solo@example.com", percent: 5, isActive: true),
         ])
 
@@ -152,7 +152,7 @@ struct AccountRecommendationTests {
     /// Codex labels are emails, and this line sits directly above cards that redact theirs.
     @Test
     func `redacts the recommended Codex account when personal info is hidden`() throws {
-        let entries = try Self.codexUsageMenuEntries(
+        let entries = Self.codexUsageMenuEntries(
             rows: [
                 Self.codexRow("busy@example.com", percent: 80, isActive: true),
                 Self.codexRow("spare@example.com", percent: 5),
@@ -201,7 +201,7 @@ struct AccountRecommendationTests {
     /// Drives the real provider hook rather than the projection alone, so the wiring itself is covered.
     private static func codexUsageMenuEntries(
         rows: [CodexAccountUsageSnapshot],
-        hidePersonalInfo: Bool = false) throws -> [ProviderMenuEntry]
+        hidePersonalInfo: Bool = false) -> [ProviderMenuEntry]
     {
         let settings = testSettingsStore(suiteName: "AccountRecommendationTests-codex")
         settings.hidePersonalInfo = hidePersonalInfo
