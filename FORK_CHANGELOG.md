@@ -28,7 +28,10 @@ appear in that one.
   instead of whenever the next real request lands. `Sources/CodexBarCore/Kick/`.
 - **Kick a Codex account** — same idea, but it has to be a throwaway `codex exec` rather than an
   HTTP call, because the ChatGPT backend starts the window off actual Codex usage. Routed to the
-  active account's `CODEX_HOME`, since `codex exec` has no flag to select a login.
+  active account's `CODEX_HOME`, since `codex exec` has no flag to select a login. Runs
+  `gpt-5.6-luna`, the cheapest model that still opens the window; Tokémon used `gpt-5.6-sol` at 25x
+  the rate for a turn that sends and reads one word. Never a Spark model either way, since Spark
+  bills to its own weekly bucket and would not open the window at all.
 
 ### Added — account selection and automation
 

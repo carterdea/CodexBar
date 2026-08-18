@@ -13,9 +13,15 @@ public typealias CodexKickLaunch = @Sendable (
 /// CLI, which is also why `codexHome` matters: `codex exec` takes its login from `$CODEX_HOME` and
 /// offers no flag to select an account.
 public enum CodexKickRunner {
-    /// A cheap general model. Deliberately **not** a Spark model: Spark bills to its own
-    /// `weekly_scoped` bucket, so it would not open the window the kick exists for.
-    public static let model = "gpt-5.6-sol"
+    /// The cheapest model that still opens the window: $0.20 per million input against
+    /// `gpt-5.6-sol`'s $5.00, and $1.20 output against $30.00. The kick sends one word and reads
+    /// one word, so the absolute saving is small, but nothing about this turn wants a strong
+    /// model — it exists only to make the backend start the clock.
+    ///
+    /// Deliberately **not** a Spark model. Spark bills to its own `weekly_scoped` bucket, so it
+    /// would not open the window the kick exists for. That constraint is the one that matters
+    /// here; cheapness is a preference, and `CodexKickRunnerTests` pins the Spark rule alone.
+    public static let model = "gpt-5.6-luna"
 
     /// The prompt is one word because the response is irrelevant — only that a turn happened.
     public static let prompt = "hi"
