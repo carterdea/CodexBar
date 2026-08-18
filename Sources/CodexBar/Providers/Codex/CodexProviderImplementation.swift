@@ -247,6 +247,8 @@ struct CodexProviderImplementation: ProviderImplementation {
 
     @MainActor
     func appendUsageMenuEntries(context: ProviderMenuUsageContext, entries: inout [ProviderMenuEntry]) {
+        self.appendAccountRecommendation(context: context, entries: &entries)
+
         guard context.settings.showOptionalCreditsAndExtraUsage,
               context.metadata.supportsCredits
         else { return }
@@ -274,6 +276,36 @@ struct CodexProviderImplementation: ProviderImplementation {
             let hint = context.store.userFacingLastCreditsError ?? context.metadata.creditsHint
             entries.append(.text(hint, .secondary))
         }
+    }
+
+    /// Codex's answer to claude-swap's account list is `UsageStore.codexAccountSnapshots`: one row per
+    /// visible account, each carrying that account's own usage. Only the stacked multi-account refresh
+    /// fills it; the segmented layout fetches the active account alone, leaving at most one row. So the
+    /// line goes quiet exactly when the app never learned what the other accounts have left, which is
+    /// the honest answer rather than a recommendation made from one account's numbers.
+    ///
+    /// Projected through the same helper the compact account cards use, so the recommendation and the
+    /// cards cannot disagree about which account is active or which ones are unhealthy.
+    @MainActor
+    private func appendAccountRecommendation(
+        context: ProviderMenuUsageContext,
+        entries: inout [ProviderMenuEntry])
+    {
+        let rows = context.store.codexAccountSnapshots
+        guard rows.count > 1 else { return }
+
+        // A display built from the rows themselves rather than the menu's: the usage context has no
+        // controller to ask for one, and every account worth ranking already has a row here.
+        let accounts = StatusItemController.projectedCodexAccounts(display: CodexAccountMenuDisplay(
+            accounts: rows.map(\.account),
+            snapshots: rows,
+            activeVisibleAccountID: rows.first { $0.account.isActive }?.id,
+            layout: .stacked))
+        guard let recommendation = AccountRecommendation.line(
+            for: accounts,
+            hidePersonalInfo: context.settings.hidePersonalInfo)
+        else { return }
+        entries.append(.text(recommendation, .primary))
     }
 
     @MainActor

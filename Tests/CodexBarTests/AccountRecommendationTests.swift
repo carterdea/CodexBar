@@ -110,4 +110,120 @@ struct AccountRecommendationTests {
 
         #expect(line?.contains("broken") != true)
     }
+
+    // MARK: - Codex
+
+    @Test
+    func `Codex accounts are ranked by headroom`() throws {
+        let entries = try Self.codexUsageMenuEntries(rows: [
+            Self.codexRow("busy@example.com", percent: 80, isActive: true),
+            Self.codexRow("spare@example.com", percent: 5),
+        ])
+
+        guard case let .text(title, style) = try #require(entries.first) else {
+            Issue.record("Expected a Codex recommendation menu entry")
+            return
+        }
+        #expect(title.contains("spare@example.com"))
+        #expect(style == .primary)
+    }
+
+    @Test
+    func `says nothing when the active Codex account already has the most headroom`() throws {
+        let entries = try Self.codexUsageMenuEntries(rows: [
+            Self.codexRow("spare@example.com", percent: 5, isActive: true),
+            Self.codexRow("busy@example.com", percent: 80),
+        ])
+
+        #expect(entries.isEmpty)
+    }
+
+    /// The segmented layout fetches only the active account, so the store holds at most one row and
+    /// there is nothing to compare against.
+    @Test
+    func `says nothing when only one Codex account has usage`() throws {
+        let entries = try Self.codexUsageMenuEntries(rows: [
+            Self.codexRow("solo@example.com", percent: 5, isActive: true),
+        ])
+
+        #expect(entries.isEmpty)
+    }
+
+    /// Codex labels are emails, and this line sits directly above cards that redact theirs.
+    @Test
+    func `redacts the recommended Codex account when personal info is hidden`() throws {
+        let entries = try Self.codexUsageMenuEntries(
+            rows: [
+                Self.codexRow("busy@example.com", percent: 80, isActive: true),
+                Self.codexRow("spare@example.com", percent: 5),
+            ],
+            hidePersonalInfo: true)
+
+        guard case let .text(title, _) = try #require(entries.first) else {
+            Issue.record("Expected a Codex recommendation menu entry")
+            return
+        }
+        #expect(!title.contains("spare@example.com"))
+    }
+
+    // MARK: - Codex fixtures
+
+    private static func codexRow(
+        _ email: String,
+        percent: Double,
+        isActive: Bool = false) -> CodexAccountUsageSnapshot
+    {
+        CodexAccountUsageSnapshot(
+            account: CodexVisibleAccount(
+                id: email,
+                email: email,
+                storedAccountID: nil,
+                selectionSource: .liveSystem,
+                isActive: isActive,
+                isLive: isActive,
+                canReauthenticate: false,
+                canRemove: false),
+            snapshot: UsageSnapshot(
+                primary: RateWindow(
+                    usedPercent: percent,
+                    windowMinutes: 300,
+                    resetsAt: self.now.addingTimeInterval(3600),
+                    resetDescription: nil),
+                secondary: nil,
+                tertiary: nil,
+                providerCost: nil,
+                updatedAt: self.now,
+                identity: nil),
+            error: nil,
+            sourceLabel: "test")
+    }
+
+    /// Drives the real provider hook rather than the projection alone, so the wiring itself is covered.
+    private static func codexUsageMenuEntries(
+        rows: [CodexAccountUsageSnapshot],
+        hidePersonalInfo: Bool = false) throws -> [ProviderMenuEntry]
+    {
+        let settings = testSettingsStore(suiteName: "AccountRecommendationTests-codex")
+        settings.hidePersonalInfo = hidePersonalInfo
+        // Credits are the rest of this hook; leaving them off proves the recommendation stands alone.
+        settings.showOptionalCreditsAndExtraUsage = false
+        let store = UsageStore(
+            fetcher: UsageFetcher(environment: [:]),
+            browserDetection: BrowserDetection(cacheTTL: 0),
+            settings: settings,
+            startupBehavior: .testing,
+            environmentBase: [:])
+        store.codexAccountSnapshots = rows
+
+        var entries: [ProviderMenuEntry] = []
+        CodexProviderImplementation().appendUsageMenuEntries(
+            context: ProviderMenuUsageContext(
+                provider: .codex,
+                store: store,
+                settings: settings,
+                metadata: ProviderDescriptorRegistry.descriptor(for: .codex).metadata,
+                snapshot: rows.first?.snapshot),
+            entries: &entries)
+        return entries
+    }
 }
