@@ -327,7 +327,10 @@ struct ClaudeProviderImplementation: ProviderImplementation {
 
         // Only claude-swap exposes several Claude accounts with usage attached, so this is the one
         // place there is a choice to recommend between.
-        if let recommendation = AccountRecommendation.line(for: context.store.claudeSwapAccountSnapshots) {
+        if let recommendation = AccountRecommendation.line(
+            for: context.store.claudeSwapAccountSnapshots,
+            hidePersonalInfo: context.settings.hidePersonalInfo)
+        {
             entries.append(.text(recommendation, .primary))
         }
 

@@ -34,7 +34,15 @@ enum AccountRecommendation {
     ///
     /// Silent unless there is a real choice to make: one account is not a recommendation, and
     /// pointing at the account already in use is noise.
-    static func line(for accounts: [ProviderAccountUsageSnapshot], now: Date = Date()) -> String? {
+    ///
+    /// `hidePersonalInfo` is honoured because `displayLabel` is usually an email address, and this
+    /// line sits in the menu directly above account cards that already redact theirs. Leaving it
+    /// alone would quietly defeat the setting for anyone who turned it on to share their screen.
+    static func line(
+        for accounts: [ProviderAccountUsageSnapshot],
+        hidePersonalInfo: Bool = false,
+        now: Date = Date()) -> String?
+    {
         guard accounts.count > 1 else { return nil }
 
         let ranked = AccountRanking.rank(accounts, now: now)
@@ -46,9 +54,11 @@ enum AccountRecommendation {
               percent < AccountRanking.blockedPercent
         else { return nil }
 
+        let label = PersonalInfoRedactor.redactEmails(in: best.displayLabel, isEnabled: hidePersonalInfo)
+            ?? best.displayLabel
         return String(
             format: L("use_next_format"),
-            best.displayLabel,
+            label,
             UsageFormatter.percentString(percent))
     }
 }

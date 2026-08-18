@@ -60,8 +60,11 @@ struct MenuDescriptorClaudeKickTests {
         }.first
     }
 
-    private func kickUnavailableSubtitle(in entries: [MenuDescriptor.Entry]) -> String?? {
-        entries.compactMap { entry -> String?? in
+    /// Flat `String?`, not `String??`. The entry's own subtitle is optional, so a double optional
+    /// here would let `compactMap` keep a `.some(nil)` — and an entry with no subtitle at all would
+    /// then satisfy a `!= nil` check. The reason to disable the kick has to actually be said.
+    private func kickUnavailableSubtitle(in entries: [MenuDescriptor.Entry]) -> String? {
+        entries.compactMap { entry -> String? in
             guard case let .unavailable(label, subtitle) = entry, label == "Start session window" else {
                 return nil
             }
