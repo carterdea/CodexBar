@@ -10,6 +10,21 @@ import Foundation
 /// Occupancy is **single, per provider, and rejecting**: a kick requested while one is already in
 /// flight is dropped, never queued. A kick spends real quota, so a queue would turn one impatient
 /// double-click into two messages.
+/// Who asked for a kick, which decides whether it may put a Keychain dialog on screen.
+///
+/// Claude's credentials usually live in Claude Code's Keychain item, and reading it can prompt.
+/// A prompt is reasonable when the user just clicked the menu item and is watching. It is not
+/// reasonable at a weekly turnover, which happens on the provider's schedule and may well be at
+/// 3am — an unexplained authorization dialog with nobody around to connect it to anything.
+enum KickTrigger {
+    case user
+    case automatic
+
+    var allowsKeychainPrompt: Bool {
+        self == .user
+    }
+}
+
 @MainActor
 final class KickCoordinator {
     static let shared = KickCoordinator()
@@ -25,7 +40,7 @@ final class KickCoordinator {
 
     /// Runs a kick if one is not already in flight for `provider`, then refreshes usage if a
     /// window actually started.
-    func kick(provider: UsageProvider, store: UsageStore) {
+    func kick(provider: UsageProvider, store: UsageStore, trigger: KickTrigger = .user) {
         guard !self.inFlight.contains(provider) else {
             self.logger.info("kick ignored: already in flight", metadata: ["provider": provider.rawValue])
             return
@@ -35,10 +50,10 @@ final class KickCoordinator {
         Task { @MainActor in
             defer { self.inFlight.remove(provider) }
 
-            let outcome = await Self.run(provider: provider, settings: store.settings)
+            let outcome = await Self.run(provider: provider, settings: store.settings, trigger: trigger)
             self.logger.info(
                 "kick finished",
-                metadata: ["provider": provider.rawValue, "outcome": String(describing: outcome)])
+                metadata: ["provider": provider.rawValue, "outcome": outcome.logName])
 
             if outcome.warrantsRefresh {
                 await store.refreshProvider(provider)
@@ -49,7 +64,11 @@ final class KickCoordinator {
 
     // MARK: - Internals
 
-    private static func run(provider: UsageProvider, settings: SettingsStore) async -> KickOutcome {
+    private static func run(
+        provider: UsageProvider,
+        settings: SettingsStore,
+        trigger: KickTrigger) async -> KickOutcome
+    {
         // Provider-specific by design: how a session window is started is not derivable from
         // provider metadata. Claude begins one with an inference request; Codex begins one by
         // running its CLI. Each provider that gains a kick has to say how, so this dispatch is
@@ -57,7 +76,12 @@ final class KickCoordinator {
         switch provider {
         case .claude:
             do {
-                let credentials = try await ClaudeOAuthCredentialsStore.loadWithAutoRefresh()
+                // An automatic kick reads credentials without prompting, and honours the cooldown
+                // that stops a failed read from re-asking on every cycle. It would rather skip a
+                // window than raise a dialog the user cannot place.
+                let credentials = try await ClaudeOAuthCredentialsStore.loadWithAutoRefresh(
+                    allowKeychainPrompt: trigger.allowsKeychainPrompt,
+                    respectKeychainPromptCooldown: !trigger.allowsKeychainPrompt)
                 return await ClaudeKickRunner.kick(accessToken: credentials.accessToken)
             } catch {
                 // Deliberately not `.noCredentials`. Credentials usually live in Claude Code's

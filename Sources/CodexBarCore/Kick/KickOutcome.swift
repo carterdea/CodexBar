@@ -30,4 +30,19 @@ extension KickOutcome {
     public var warrantsRefresh: Bool {
         self == .started
     }
+
+    /// A stable, payload-free name for logs.
+    ///
+    /// `String(describing:)` would carry the associated message with it, and those messages are
+    /// whatever the credential loader or the provider said — which can name the account. The log
+    /// records which arm was taken; the wording stays in the user-facing notification.
+    public var logName: String {
+        switch self {
+        case .started: "started"
+        case .alreadyRunning: "alreadyRunning"
+        case .noCredentials: "noCredentials"
+        case .unsupported: "unsupported"
+        case .failed: "failed"
+        }
+    }
 }

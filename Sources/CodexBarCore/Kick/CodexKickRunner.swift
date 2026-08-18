@@ -83,13 +83,23 @@ public enum CodexKickRunner {
         }
     }
 
-    /// The real launcher. Runs to natural exit: a kick that is killed partway may still have
-    /// spent a turn, so interrupting it buys nothing and loses the outcome.
+    /// How long to wait for the CLI. One `minimal`-effort turn on a one-word prompt is a few
+    /// seconds; anything past this is a hang, not slow work.
+    ///
+    /// It is bounded rather than run to natural exit because the caller holds a single-occupancy
+    /// guard for the whole call. An unbounded wait therefore does not merely leak a process — it
+    /// disables the Codex kick until the app is relaunched. Giving up early risks reporting a
+    /// failure for a turn that did land, which is the cheaper mistake: the next usage refresh
+    /// shows the window either way, and a wedged button shows nothing ever.
+    public static let timeout: TimeInterval = 120
+
+    /// The real launcher.
     public static let defaultLaunch: CodexKickLaunch = { binary, arguments, environment in
-        _ = try await SubprocessRunner.runToCompletion(
+        _ = try await SubprocessRunner.run(
             binary: binary,
             arguments: arguments,
             environment: environment,
+            timeout: CodexKickRunner.timeout,
             acceptsNonZeroExit: false,
             label: "codex-kick")
     }
