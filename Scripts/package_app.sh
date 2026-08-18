@@ -217,8 +217,11 @@ if [[ -f "$ICON_SOURCE" ]]; then
 fi
 
 BUNDLE_ID="com.steipete.codexbar"
-FEED_URL="https://raw.githubusercontent.com/steipete/CodexBar/main/appcast.xml"
-AUTO_CHECKS=true
+# Fork: no appcast. Upstream's feed serves upstream's builds, so pointing at it would
+# offer to replace this fork with steipete's app. Restore a feed only when this fork
+# publishes its own releases signed with its own Sparkle key (see SUPublicEDKey below).
+FEED_URL=""
+AUTO_CHECKS=false
 if [[ "$LOWER_CONF" == "debug" ]]; then
   BUNDLE_ID="com.steipete.codexbar.debug"
   FEED_URL=""
@@ -320,7 +323,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleIconFile</key><string>Icon</string>
     <key>NSHumanReadableCopyright</key><string>© 2026 Peter Steinberger. MIT License.</string>
     <key>SUFeedURL</key><string>${FEED_URL}</string>
-    <key>SUPublicEDKey</key><string>AGCY8w5vHirVfGGDGc8Szc5iuOqupZSh9pMj/Qs67XI=</string>
+    <key>SUPublicEDKey</key><string></string>
     <key>SUEnableAutomaticChecks</key><${AUTO_CHECKS}/>
     <key>CodexBuildTimestamp</key><string>${BUILD_TIMESTAMP}</string>
     <key>CodexGitCommit</key><string>${GIT_COMMIT}</string>
@@ -528,7 +531,15 @@ elif [[ "$ALLOW_LLDB" == "1" ]]; then
   CODESIGN_ID="-"
   CODESIGN_ARGS=(--force --sign "$CODESIGN_ID")
 else
-  CODESIGN_ID="${APP_IDENTITY:-Developer ID Application: Peter Steinberger (Y5PE65HELJ)}"
+  # Fork: no default identity. Upstream fell back to its author's Developer ID here, which in a
+  # fork means an identity-signed build silently attempts to sign as someone else. Fail closed;
+  # ad-hoc signing is the path that needs no identity.
+  if [[ -z "${APP_IDENTITY:-}" ]]; then
+    echo "ERROR: APP_IDENTITY is unset and this fork has no default signing identity." >&2
+    echo "       Set APP_IDENTITY to your own Developer ID, or package ad-hoc." >&2
+    exit 1
+  fi
+  CODESIGN_ID="$APP_IDENTITY"
   CODESIGN_ARGS=(--force --timestamp --options runtime --sign "$CODESIGN_ID")
 fi
 function resign() { codesign "${CODESIGN_ARGS[@]}" "$1"; }

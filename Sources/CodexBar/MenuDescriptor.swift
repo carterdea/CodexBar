@@ -51,6 +51,7 @@ struct MenuDescriptor {
         case about = "info.circle"
         case quit = "xmark.rectangle"
         case copyError = "doc.on.doc"
+        case kickSession = "bolt"
     }
 
     enum TextStyle {
@@ -77,6 +78,8 @@ struct MenuDescriptor {
         case quit
         case copyError(String)
         case focusAgentSession(AgentSession, remoteHost: String?)
+        /// Send one minimal request so the provider's session window starts now. Fork addition.
+        case kickSession(UsageProvider)
     }
 
     var sections: [Section]
@@ -781,6 +784,7 @@ extension MenuDescriptor.MenuAction {
         case .copyError: MenuDescriptor.MenuActionSystemImage.copyError.rawValue
         case .focusAgentSession:
             nil
+        case .kickSession: MenuDescriptor.MenuActionSystemImage.kickSession.rawValue
         }
     }
 }

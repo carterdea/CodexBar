@@ -93,6 +93,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
             set: { context.settings.claudeSwapShowSingleAccount = $0 })
 
         return [
+            AutoKickToggle.descriptor(),
             ProviderSettingsToggleDescriptor(
                 id: "claude-model-scoped-weekly-usage-visible",
                 title: "Show model-specific weekly usage in widgets",
@@ -324,6 +325,15 @@ struct ClaudeProviderImplementation: ProviderImplementation {
             entries.append(.text(L("Weekly usage unavailable for this account."), .secondary))
         }
 
+        // Only claude-swap exposes several Claude accounts with usage attached, so this is the one
+        // place there is a choice to recommend between.
+        if let recommendation = AccountRecommendation.line(
+            for: context.store.claudeSwapAccountSnapshots,
+            hidePersonalInfo: context.settings.hidePersonalInfo)
+        {
+            entries.append(.text(recommendation, .primary))
+        }
+
         if let cost = context.snapshot?.providerCost,
            context.settings.showOptionalCreditsAndExtraUsage,
            cost.currencyCode != "Quota"
@@ -345,6 +355,18 @@ struct ClaudeProviderImplementation: ProviderImplementation {
                 entries.append(.text("\(label): \(value)", .primary))
             }
         }
+    }
+
+    /// Adds "Start session window" — the fork's kick. Claude's 5-hour window begins with the first
+    /// request rather than on a schedule, so starting it deliberately moves the window boundary to a
+    /// moment the user picked, instead of wherever their next real request happens to land.
+    ///
+    /// This kicks whichever Claude login is currently ambient. Under ClaudeSwap that is the account
+    /// `cswap` has switched to, which is the right one; the accounts it has *not* switched to cannot
+    /// be kicked, because `cswap` owns their credentials and CodexBar never reads them.
+    @MainActor
+    func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry]) {
+        entries.append(KickMenuEntry.make(provider: context.provider, store: context.store))
     }
 
     @MainActor

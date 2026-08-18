@@ -148,6 +148,8 @@ struct MenuContent: View {
             self.actions.copyError(message)
         case .focusAgentSession:
             return
+        case let .kickSession(provider):
+            KickCoordinator.shared.kick(provider: provider, store: self.store)
         }
     }
 }

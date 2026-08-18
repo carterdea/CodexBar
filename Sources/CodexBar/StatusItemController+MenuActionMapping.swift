@@ -22,6 +22,7 @@ extension StatusItemController {
         case let .copyError(message): (#selector(self.copyError(_:)), message)
         case let .focusAgentSession(session, remoteHost):
             (#selector(self.focusAgentSession(_:)), [session.id, remoteHost ?? ""])
+        case let .kickSession(provider): (#selector(self.runKickSession(_:)), provider.rawValue)
         }
     }
 

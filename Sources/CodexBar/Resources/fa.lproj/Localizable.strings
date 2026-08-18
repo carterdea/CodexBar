@@ -411,6 +411,9 @@
 "cursor_on_demand" = "درخواست: %@";
 "cursor_on_demand_with_limit" = "درخواست: %1$@ / %2$@";
 "extra_usage_format" = "استفاده اضافی: %1$@ / %2$@";
+"use_next_format" = "بعد از این %1$@ را استفاده کنید — %2$@ استفاده‌شده";
+"auto_kick_subtitle" = "وقتی یک محدودیت هفتگی پرمصرف بازنشانی می‌شود، پیام کوتاهی از حساب شما ارسال می‌کند تا پنجره جدید بلافاصله شروع شود.";
+"Start a new weekly window automatically" = "شروع خودکار پنجره هفتگی جدید";
 "jetbrains_detected_generate" = "شناسایی شد: %@. یک بار از دستیار هوش مصنوعی برای تولید داده های سهمیه استفاده کنید، سپس CodexBar را تازه کنید.";
 "jetbrains_detected_select" = "شناسایی شد: %@. IDE مورد علاقه تان را در تنظیمات انتخاب کنید، سپس CodexBar را تازه کنید.";
 "last_fetch_failed_with_provider" = "آخرین %@ آوردن ناموفق بود:";

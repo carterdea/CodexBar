@@ -409,6 +409,9 @@
 "cursor_on_demand" = "İsteğe bağlı: %@";
 "cursor_on_demand_with_limit" = "İsteğe bağlı: %1$@ / %2$@";
 "extra_usage_format" = "Ekstra kullanım: %1$@ / %2$@";
+"use_next_format" = "Sonraki: %1$@ kullanın — %2$@ kullanıldı";
+"auto_kick_subtitle" = "Yoğun kullanılan bir haftalık sınır sıfırlandığında hesabınızdan kısa bir mesaj gönderir, böylece yeni pencere hemen başlar.";
+"Start a new weekly window automatically" = "Yeni haftalık pencereyi otomatik başlat";
 "jetbrains_detected_generate" = "Algılandı: %@. Kota verisini oluşturmak için AI asistanını bir kez kullanın, ardından CodexBar'ı yenileyin.";
 "jetbrains_detected_select" = "Algılandı: %@. Ayarlar'da tercih ettiğiniz IDE'yi seçin, ardından CodexBar'ı yenileyin.";
 "last_fetch_failed_with_provider" = "Son %@ getirmesi başarısız:";

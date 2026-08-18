@@ -424,6 +424,9 @@
 "cursor_on_demand" = "온디맨드: %@";
 "cursor_on_demand_with_limit" = "온디맨드: %1$@ / %2$@";
 "extra_usage_format" = "추가 사용량: %1$@ / %2$@";
+"use_next_format" = "다음은 %1$@ 사용 — %2$@ 사용됨";
+"auto_kick_subtitle" = "많이 사용한 주간 한도가 초기화되면 계정에서 짧은 메시지를 보내 새 창을 즉시 시작합니다.";
+"Start a new weekly window automatically" = "새 주간 창을 자동으로 시작";
 "jetbrains_detected_generate" = "감지됨: %@. AI 어시스턴트를 한 번 사용하여 할당량 데이터를 생성한 다음 CodexBar를 새로 고치세요.";
 "jetbrains_detected_select" = "감지됨: %@. 설정에서 선호하는 IDE를 선택한 다음 CodexBar를 새로 고치세요.";
 "last_fetch_failed_with_provider" = "마지막 %@ 가져오기 실패:";
