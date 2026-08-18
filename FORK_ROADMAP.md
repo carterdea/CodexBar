@@ -17,9 +17,8 @@ done better here than in Tokémon.
 | Auto-kick on weekly turnover | shipped | Off by default. 60% floor, 12 hour minimum gap |
 | Activity heatmap | **already here** | 365 days vs Tokémon's 105, but buried in settings and its tooltip says too little |
 | Per-day detail | **already here** | Richer than Tokémon: projects, conversations, sessions |
-| Lines of code written | missing | Nothing here counts edits. Blocks the digest |
+| Lines of code written | missing | Nothing here counts edits |
 | Auto-prewarm | missing | No equivalent exists |
-| Monday digest | missing | No scheduled summary of any kind |
 | Fun stats | partial | Spend dashboard exists. Streak, cache saved, leverage do not |
 
 ## Corrections to common assumptions
@@ -94,24 +93,7 @@ cooldown    not prewarmed within 5 hours
 - Reuse `KickCoordinator.kick(trigger: .automatic)`, which already suppresses the Keychain prompt
 - `PlanUtilizationHistoryStore` keeps 2 years of hourly samples, so the rise signal is available
 
-### 5. Monday digest
-
-One notification a week. The range rule is the subtle part: it sums the seven days ending yesterday
-as a **date range**, not the last seven stored days, because a sparse archive would otherwise fold
-in a month of work.
-
-```
-when     local Monday, hour >= 9, once per week key
-range    the 7 days ending yesterday, as dates
-sums     cost, messages, lines added, cost per project
-body     $N credit-value · N messages · +N lines · top: name
-```
-
-- Model: Tokémon `src/worker.ts:1214-1244` and `:1416-1426`
-- Read from `CostUsageStore` `day_aggregates`; deliver through `AppNotifications.post`
-- Depends on item 3
-
-### 6. The stats worth keeping
+### 5. The stats worth keeping
 
 Our spend dashboard already covers tokens, cost, models and projects. These are the ones Tokémon
 has that we do not, and the ones with a point of view rather than another total.
@@ -129,7 +111,7 @@ Model: Tokémon `src/page.ts:778-843`. Pick from these; do not port wholesale. A
 comparison is charming and will be the first thing that looks like filler in a menu bar opened
 forty times a day.
 
-### 7. Wire the recommendation for Codex
+### 6. Wire the recommendation for Codex
 
 The ranking is provider agnostic and already ported. Only Claude calls it, over
 `claudeSwapAccountSnapshots`. Codex has managed accounts and the same question applies.
