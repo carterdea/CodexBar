@@ -125,7 +125,7 @@ public enum AutoPrewarmDecision {
                 guard let rise = self.lastRise(in: account.samples) else { return nil }
                 let age = now.timeIntervalSince(rise)
                 guard age >= 0, age < self.activityWindow else { return nil }
-                guard let percent = AccountRanking.bindingUsedPercent(account.windows) else { return nil }
+                guard let percent = AccountRanking.bindingUsedPercent(account.windows, now: now) else { return nil }
                 return (account, percent)
             }
             .max { lhs, rhs in
@@ -160,7 +160,7 @@ public enum AutoPrewarmDecision {
             return nil
         }
         guard let active = self.activeAccount(among: accounts, now: now) else { return nil }
-        guard let activePercent = AccountRanking.bindingUsedPercent(active.windows),
+        guard let activePercent = AccountRanking.bindingUsedPercent(active.windows, now: now),
               activePercent >= self.triggerPercent
         else { return nil }
 
@@ -172,7 +172,7 @@ public enum AutoPrewarmDecision {
                 // message to start something that started without us, which is the one failure this
                 // feature has no excuse for.
                 guard session.resetsAt == nil else { return nil }
-                guard let percent = AccountRanking.bindingUsedPercent(account.windows) else { return nil }
+                guard let percent = AccountRanking.bindingUsedPercent(account.windows, now: now) else { return nil }
                 let headroom = 100 - percent
                 guard headroom > self.minimumHeadroomPercent else { return nil }
                 if let last = account.lastPrewarmedAt, now.timeIntervalSince(last) < self.cooldown {
