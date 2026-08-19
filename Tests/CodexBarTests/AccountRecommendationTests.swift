@@ -149,6 +149,23 @@ struct AccountRecommendationTests {
         #expect(entries.isEmpty)
     }
 
+    /// Menu rendering must stay side-effect free: reading the visible-account projection here would
+    /// load `auth.json`, parse JWTs, and hash fingerprints while the menu is being built. The rows
+    /// already carry the projection's active flag, so the recommendation never needs to ask for it.
+    @Test
+    func `building the Codex recommendation never loads codex auth state`() {
+        let loads = Counter()
+        let entries = Self.codexUsageMenuEntries(
+            rows: [
+                Self.codexRow("busy@example.com", percent: 80, isActive: true),
+                Self.codexRow("spare@example.com", percent: 5),
+            ],
+            onReconciliationLoad: { loads.increment() })
+
+        #expect(loads.value == 0)
+        #expect(!entries.isEmpty)
+    }
+
     /// Codex labels are emails, and this line sits directly above cards that redact theirs.
     @Test
     func `redacts the recommended Codex account when personal info is hidden`() throws {
@@ -199,12 +216,27 @@ struct AccountRecommendationTests {
     }
 
     /// Drives the real provider hook rather than the projection alone, so the wiring itself is covered.
+    /// `onReconciliationLoad` fires if the hook asks the settings store to reconcile Codex accounts,
+    /// which menu rendering must never do.
     private static func codexUsageMenuEntries(
         rows: [CodexAccountUsageSnapshot],
-        hidePersonalInfo: Bool = false) -> [ProviderMenuEntry]
+        hidePersonalInfo: Bool = false,
+        onReconciliationLoad: (@Sendable () -> Void)? = nil) -> [ProviderMenuEntry]
     {
         let settings = testSettingsStore(suiteName: "AccountRecommendationTests-codex")
         settings.hidePersonalInfo = hidePersonalInfo
+        if let onReconciliationLoad {
+            settings._test_codexAccountSnapshotLoader = { activeSource in
+                onReconciliationLoad()
+                return CodexAccountReconciliationSnapshot(
+                    storedAccounts: [],
+                    activeStoredAccount: nil,
+                    liveSystemAccount: nil,
+                    matchingStoredAccountForLiveSystemAccount: nil,
+                    activeSource: activeSource,
+                    hasUnreadableAddedAccountStore: false)
+            }
+        }
         // Credits are the rest of this hook; leaving them off proves the recommendation stands alone.
         settings.showOptionalCreditsAndExtraUsage = false
         let store = UsageStore(
@@ -225,5 +257,19 @@ struct AccountRecommendationTests {
                 snapshot: rows.first?.snapshot),
             entries: &entries)
         return entries
+    }
+}
+
+/// Minimal call counter for the `@Sendable` reconciliation-loader seam.
+private final class Counter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    var value: Int {
+        self.lock.withLock { self.count }
+    }
+
+    func increment() {
+        self.lock.withLock { self.count += 1 }
     }
 }

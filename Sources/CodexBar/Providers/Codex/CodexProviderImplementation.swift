@@ -291,8 +291,10 @@ struct CodexProviderImplementation: ProviderImplementation {
         context: ProviderMenuUsageContext,
         entries: inout [ProviderMenuEntry])
     {
-        // A display built from the rows themselves rather than the menu's: the usage context has no
-        // controller to ask for one, and every account worth ranking already has a row here.
+        // A display built from the store rows rather than the menu's, because the usage context carries
+        // no controller to ask for one. The rows are themselves built from the visible-account
+        // projection, so each one already carries that projection's `isActive`; reading the projection
+        // again here would load `auth.json` during menu rendering, which must stay side-effect free.
         let rows = context.store.codexAccountSnapshots
         let accounts = StatusItemController.projectedCodexAccounts(display: CodexAccountMenuDisplay(
             accounts: rows.map(\.account),
