@@ -1848,6 +1848,7 @@ enum CostUsageScanner {
     struct ClaudeParseResult {
         let days: [String: [String: [Int]]]
         let rows: [ClaudeUsageRow]
+        let edits: [ClaudeEditRow]
         let parsedBytes: Int64
     }
 
@@ -1872,6 +1873,18 @@ enum CostUsageScanner {
         let output: Int
         let costNanos: Int
         let costPriced: Bool?
+    }
+
+    /// One Claude edit record (`toolUseResult` carrying a `structuredPatch` or a file create).
+    /// Codex rollouts have no equivalent, so these counts are Claude-only by construction and must
+    /// never be surfaced on a table that merges the two providers.
+    struct ClaudeEditRow: Codable, Equatable {
+        let dayKey: String
+        /// Transcript record uuid. Nil only for records that omit it; those cannot be deduped.
+        let uuid: String?
+        let added: Int
+        let removed: Int
+        let created: Int
     }
 
     static func loadDailyReport(

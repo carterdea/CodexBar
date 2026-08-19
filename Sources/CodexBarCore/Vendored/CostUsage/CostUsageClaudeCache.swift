@@ -214,7 +214,7 @@ enum CostUsageClaudeCacheIO {
         CostUsageScanner.recordClaudeScanWork(.cacheDecode)
         #endif
         guard let cache = try? JSONDecoder().decode(CostUsageCache.self, from: data),
-              cache.version == 1
+              cache.version == 2
         else { return CostUsageCache() }
         if let calendar, cache.timeZoneIdentifier != calendar.timeZone.identifier {
             return CostUsageCache()

@@ -288,6 +288,34 @@ public struct CostUsageProjectSourceBreakdown: Sendable, Equatable {
     }
 }
 
+/// Lines and files touched by Claude edit records (`toolUseResult`). Codex rollouts carry no edit
+/// records, so this is Claude-only by construction and must never appear on a table that merges the
+/// two providers: a merged row would present Claude's count as the pair's total.
+public struct CostUsageEditCounts: Codable, Equatable, Sendable {
+    public static let zero = Self(linesAdded: 0, linesRemoved: 0, filesCreated: 0)
+
+    public let linesAdded: Int
+    public let linesRemoved: Int
+    public let filesCreated: Int
+
+    public init(linesAdded: Int, linesRemoved: Int, filesCreated: Int) {
+        self.linesAdded = linesAdded
+        self.linesRemoved = linesRemoved
+        self.filesCreated = filesCreated
+    }
+
+    public static func + (lhs: Self, rhs: Self) -> Self {
+        Self(
+            linesAdded: lhs.linesAdded + rhs.linesAdded,
+            linesRemoved: lhs.linesRemoved + rhs.linesRemoved,
+            filesCreated: lhs.filesCreated + rhs.filesCreated)
+    }
+
+    public static func += (lhs: inout Self, rhs: Self) {
+        lhs = lhs + rhs
+    }
+}
+
 public struct CostUsageDailyReport: Sendable, Decodable {
     public struct ModelBreakdown: Sendable, Decodable, Equatable {
         public let modelName: String
@@ -360,6 +388,9 @@ public struct CostUsageDailyReport: Sendable, Decodable {
         public let costUSD: Double?
         public let modelsUsed: [String]?
         public let modelBreakdowns: [ModelBreakdown]?
+        /// Claude-only, and dropped by `merged(_:)`: a merged row would present Claude's count as
+        /// the pair's total, reading as "wrote no code" for the Codex half.
+        public let edits: CostUsageEditCounts?
 
         private enum CodingKeys: String, CodingKey {
             case date
@@ -377,6 +408,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             case modelsUsed
             case models
             case modelBreakdowns
+            case edits
         }
 
         public init(from decoder: Decoder) throws {
@@ -399,6 +431,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
                 ?? container.decodeIfPresent(Double.self, forKey: .totalCost)
             self.modelsUsed = Self.decodeModelsUsed(from: container)
             self.modelBreakdowns = try container.decodeIfPresent([ModelBreakdown].self, forKey: .modelBreakdowns)
+            self.edits = try container.decodeIfPresent(CostUsageEditCounts.self, forKey: .edits)
         }
 
         public init(
@@ -411,7 +444,8 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             requestCount: Int? = nil,
             costUSD: Double?,
             modelsUsed: [String]?,
-            modelBreakdowns: [ModelBreakdown]?)
+            modelBreakdowns: [ModelBreakdown]?,
+            edits: CostUsageEditCounts? = nil)
         {
             self.date = date
             self.inputTokens = inputTokens
@@ -423,6 +457,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             self.costUSD = costUSD
             self.modelsUsed = modelsUsed
             self.modelBreakdowns = modelBreakdowns
+            self.edits = edits
         }
 
         private static func decodeModelsUsed(from container: KeyedDecodingContainer<CodingKeys>) -> [String]? {
