@@ -324,7 +324,7 @@ struct SpendActivityGridGeometry {
     static let tooltipInset: CGFloat = 4
     static let tooltipGap: CGFloat = 7
     static let tooltipWidth: CGFloat = 180
-    static let tooltipDayLineHeight: CGFloat = 15
+    static let tooltipDayLineHeight: CGFloat = 13
     static let tooltipDetailLineHeight: CGFloat = 14
     static let tooltipVerticalPadding: CGFloat = 6
 
