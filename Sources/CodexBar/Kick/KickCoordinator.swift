@@ -160,9 +160,26 @@ final class KickCoordinator {
     /// after a tap is not an acceptable answer — including when nothing was sent.
     private func report(_ outcome: KickOutcome, provider: UsageProvider) {
         let title = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
-        let body = switch outcome {
+        let body = outcome.notificationBody(started: L("Session window started."))
+
+        AppNotifications.shared.post(
+            idPrefix: "kick-\(provider.rawValue)",
+            title: title,
+            body: body,
+            soundEnabled: false)
+    }
+}
+
+extension KickOutcome {
+    /// What to tell the user about an outcome.
+    ///
+    /// Only ``started`` reads differently between callers — a menu kick reports that a window
+    /// started, a prewarm names the account it started on — so the four ways a kick can end without
+    /// sending are worded once here instead of at each call site, where they would drift apart.
+    func notificationBody(started: String) -> String {
+        switch self {
         case .started:
-            L("Session window started.")
+            started
         case .alreadyRunning:
             L("A session window was already running, so nothing was sent.")
         case .noCredentials:
@@ -172,11 +189,5 @@ final class KickCoordinator {
         case let .failed(message):
             message
         }
-
-        AppNotifications.shared.post(
-            idPrefix: "kick-\(provider.rawValue)",
-            title: title,
-            body: body,
-            soundEnabled: false)
     }
 }

@@ -146,18 +146,7 @@ final class AutoPrewarmCoordinator {
     private func report(_ outcome: KickOutcome, label: String, settings: SettingsStore) {
         let safeLabel = PersonalInfoRedactor.redactEmails(in: label, isEnabled: settings.hidePersonalInfo)
             ?? label
-        let body = switch outcome {
-        case .started:
-            String(format: L("prewarm_started_format"), safeLabel)
-        case .alreadyRunning:
-            L("A session window was already running, so nothing was sent.")
-        case .noCredentials:
-            L("Could not start a session window: sign in to this account again.")
-        case let .unsupported(reason):
-            reason
-        case let .failed(message):
-            message
-        }
+        let body = outcome.notificationBody(started: String(format: L("prewarm_started_format"), safeLabel))
 
         // Provider-specific by design: the notification names the provider whose account was
         // touched, and this coordinator only ever touches Claude.
