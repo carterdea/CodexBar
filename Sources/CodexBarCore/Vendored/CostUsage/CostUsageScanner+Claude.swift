@@ -115,24 +115,6 @@ extension CostUsageScanner {
         modelsDevCacheRoot: URL? = nil,
         checkCancellation: CancellationCheck? = nil) throws -> ClaudeParseResult
     {
-        func add(dayKey: String, model: String, tokens: ClaudeTokens, days: inout [String: [String: [Int]]]) {
-            guard CostUsageDayRange.isInRange(dayKey: dayKey, since: range.scanSinceKey, until: range.scanUntilKey)
-            else { return }
-            let normModel = CostUsagePricing.normalizeClaudeModel(model)
-            var dayModels = days[dayKey] ?? [:]
-            var packed = dayModels[normModel] ?? [0, 0, 0, 0, 0, 0, 0, 0]
-            packed[0] = (packed[safe: 0] ?? 0) + tokens.input
-            packed[1] = (packed[safe: 1] ?? 0) + tokens.cacheRead
-            packed[2] = (packed[safe: 2] ?? 0) + tokens.cacheCreate
-            packed[3] = (packed[safe: 3] ?? 0) + tokens.output
-            packed[4] = (packed[safe: 4] ?? 0) + tokens.costNanos
-            packed[5] = (packed[safe: 5] ?? 0) + 1
-            packed[6] = (packed[safe: 6] ?? 0) + (tokens.costPriced ? 1 : 0)
-            packed[7] = (packed[safe: 7] ?? 0) + tokens.cacheCreate1h
-            dayModels[normModel] = packed
-            days[dayKey] = dayModels
-        }
-
         let pathRole = Self.claudePathRole(fileURL: fileURL)
         var keyedRows: [String: ClaudeUsageRow] = [:]
         var unkeyedRows: [ClaudeUsageRow] = []
@@ -156,7 +138,16 @@ extension CostUsageScanner {
                 checkCancellation: checkCancellation,
                 onLine: { line in
                     guard !line.bytes.isEmpty else { return }
-                    guard !line.wasTruncated else { return }
+                    guard !line.wasTruncated else {
+                        // An assistant record too large to parse leaves this turn's provider
+                        // unknown, and the tool results that follow it belong to that turn.
+                        // Carrying the previous turn's disposition would file its edits under the
+                        // wrong provider, so stop attributing until a turn we can read sets it.
+                        if line.bytes.containsAscii(#""type":"assistant""#) {
+                            lastTurnMatchedFilter = false
+                        }
+                        return
+                    }
 
                     // Edit records ride on their own lines (Write/Edit tool results), so they are
                     // collected before the assistant/usage guards below reject everything else.
@@ -277,7 +268,12 @@ extension CostUsageScanner {
                 output: row.output,
                 costNanos: row.costNanos,
                 costPriced: row.costPriced ?? (row.costNanos > 0))
-            add(dayKey: row.dayKey, model: row.model, tokens: tokens, days: &days)
+            Self.addClaudeUsage(
+                dayKey: row.dayKey,
+                model: row.model,
+                tokens: tokens,
+                range: range,
+                days: &days)
         }
 
         return ClaudeParseResult(
@@ -576,6 +572,31 @@ extension CostUsageScanner {
         "vendor",
         "client",
     ]
+
+    /// Fold one assistant turn's tokens into the packed per-day, per-model accumulator.
+    private static func addClaudeUsage(
+        dayKey: String,
+        model: String,
+        tokens: ClaudeTokens,
+        range: CostUsageDayRange,
+        days: inout [String: [String: [Int]]])
+    {
+        guard CostUsageDayRange.isInRange(dayKey: dayKey, since: range.scanSinceKey, until: range.scanUntilKey)
+        else { return }
+        let normModel = CostUsagePricing.normalizeClaudeModel(model)
+        var dayModels = days[dayKey] ?? [:]
+        var packed = dayModels[normModel] ?? [0, 0, 0, 0, 0, 0, 0, 0]
+        packed[0] = (packed[safe: 0] ?? 0) + tokens.input
+        packed[1] = (packed[safe: 1] ?? 0) + tokens.cacheRead
+        packed[2] = (packed[safe: 2] ?? 0) + tokens.cacheCreate
+        packed[3] = (packed[safe: 3] ?? 0) + tokens.output
+        packed[4] = (packed[safe: 4] ?? 0) + tokens.costNanos
+        packed[5] = (packed[safe: 5] ?? 0) + 1
+        packed[6] = (packed[safe: 6] ?? 0) + (tokens.costPriced ? 1 : 0)
+        packed[7] = (packed[safe: 7] ?? 0) + tokens.cacheCreate1h
+        dayModels[normModel] = packed
+        days[dayKey] = dayModels
+    }
 
     private static func matchesClaudeProviderFilter(
         obj: [String: Any],

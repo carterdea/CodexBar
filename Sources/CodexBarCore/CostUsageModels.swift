@@ -306,9 +306,17 @@ public struct CostUsageEditCounts: Codable, Equatable, Sendable {
 
     public static func + (lhs: Self, rhs: Self) -> Self {
         Self(
-            linesAdded: lhs.linesAdded + rhs.linesAdded,
-            linesRemoved: lhs.linesRemoved + rhs.linesRemoved,
-            filesCreated: lhs.filesCreated + rhs.filesCreated)
+            linesAdded: self.saturatingAdd(lhs.linesAdded, rhs.linesAdded),
+            linesRemoved: self.saturatingAdd(lhs.linesRemoved, rhs.linesRemoved),
+            filesCreated: self.saturatingAdd(lhs.filesCreated, rhs.filesCreated))
+    }
+
+    /// These counts are decoded from an on-disk cache, so a corrupt artifact must degrade the
+    /// figure rather than trap the dashboard building it. Saturating matches every other token
+    /// and byte aggregate in the app.
+    private static func saturatingAdd(_ lhs: Int, _ rhs: Int) -> Int {
+        let result = lhs.addingReportingOverflow(rhs)
+        return result.overflow ? .max : result.partialValue
     }
 
     public static func += (lhs: inout Self, rhs: Self) {

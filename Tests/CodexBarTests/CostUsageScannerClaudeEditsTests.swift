@@ -327,6 +327,53 @@ struct CostUsageScannerClaudeEditsTests {
         #expect(merged.data.first?.edits == CostUsageEditCounts(linesAdded: 10, linesRemoved: 3, filesCreated: 1))
     }
 
+    /// An assistant record too large to parse is rejected before it can set the turn's provider,
+    /// and the tool results after it belong to that unread turn. Carrying the previous turn's
+    /// disposition would file a Vertex turn's edits under Claude, which the filter exists to stop.
+    @Test
+    func `parseClaudeFile drops edits after a truncated assistant turn`() throws {
+        let env = try CostUsageTestEnvironment()
+        defer { env.cleanup() }
+
+        let day = try env.makeLocalNoon(year: 2026, month: 3, day: 4)
+        let timestamp = env.isoString(for: day)
+        // "type" leads the record so it stays inside the retained prefix, and the padding pushes
+        // the line past the scanner's 512 KiB ceiling so it arrives truncated.
+        let padding = String(repeating: "x", count: 700 * 1024)
+        let oversizedVertexTurn = """
+        {"type":"assistant","timestamp":"\(timestamp)","requestId":"req_vrtx_big",\
+        "isSidechain":false,"message":{"id":"msg_vrtx_big","model":"claude-sonnet-4-20250514",\
+        "usage":{"input_tokens":1,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,\
+        "output_tokens":1},"content":[{"type":"text","text":"\(padding)"}]}}
+        """
+        let claudeTurn = try env.jsonl([Self.assistantRecord(timestamp: timestamp)])
+        let edit = try env.jsonl([Self.editRecord(
+            uuid: "edit-after-truncated",
+            timestamp: timestamp,
+            patchLines: [["+one", "-two"]])])
+        let fileURL = try env.writeClaudeProjectFile(
+            relativePath: "project-a/edits-truncated-turn.jsonl",
+            contents: claudeTurn + oversizedVertexTurn + "\n" + edit)
+
+        let parsed = CostUsageScanner.parseClaudeFile(
+            fileURL: fileURL,
+            range: CostUsageScanner.CostUsageDayRange(since: day, until: day),
+            providerFilter: .excludeVertexAI)
+
+        #expect(parsed.edits.isEmpty)
+        #expect(parsed.lastTurnMatchedFilter == false)
+    }
+
+    /// The counts are decoded from an on-disk cache, so a corrupt artifact must not trap the
+    /// dashboard that sums them.
+    @Test
+    func `edit counts saturate instead of trapping on overflow`() {
+        let huge = CostUsageEditCounts(linesAdded: .max, linesRemoved: .max, filesCreated: .max)
+        let sum = huge + CostUsageEditCounts(linesAdded: 1, linesRemoved: 2, filesCreated: 3)
+
+        #expect(sum == CostUsageEditCounts(linesAdded: .max, linesRemoved: .max, filesCreated: .max))
+    }
+
     private static func editRecord(
         uuid: String,
         timestamp: String,
