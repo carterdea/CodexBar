@@ -7,7 +7,7 @@ import Foundation
 /// weekly lane it sits behind climbs by a fraction of one — so a series of binding percentages
 /// reads as flat for exactly the account the user is typing into. The rise is what identifies that
 /// account, so it has to be looked for in every lane.
-public struct PrewarmSample: Sendable, Equatable, Codable {
+public struct PrewarmSample: Sendable, Equatable {
     public let at: Date
     /// Used-percent per quota lane, keyed by a name that is stable across refreshes.
     public let percentByLane: [String: Double]
@@ -143,9 +143,10 @@ public enum AutoPrewarmDecision {
     /// - Parameter lastPrewarmOfAnyAccountAt: when *any* account was last prewarmed. One at a time
     ///   is part of the decision, not an extra threshold: the user can only occupy one 5-hour
     ///   window at a time, so warming a second account before the first has been switched to is
-    ///   pure waste. Tokémon gets this for free by deciding once per cron tick; here the decision
-    ///   runs on every usage refresh, and a successful prewarm triggers a refresh of its own — so
-    ///   without this, one busy account would walk down the list and message every dormant one.
+    ///   pure waste. The reference implementation gets this for free by deciding once per cron tick;
+    ///   here the decision runs on every usage refresh, and a successful prewarm triggers a refresh
+    ///   of its own — so without this, one busy account would walk down the list and message every
+    ///   dormant one.
     public static func candidate(
         isEnabled: Bool,
         accounts: [PrewarmAccount],

@@ -310,7 +310,7 @@ struct AutoPrewarmDecisionTests {
     /// Without that, an out-of-order pair reads as a fall and the account looks idle.
     @Test
     func `samples are ordered before they are compared`() {
-        let shuffled = Self.risingSamples().reversed().map(\.self)
+        let shuffled = Array(Self.risingSamples().reversed())
         #expect(AutoPrewarmDecision.lastRise(in: shuffled) == Self.now)
     }
 

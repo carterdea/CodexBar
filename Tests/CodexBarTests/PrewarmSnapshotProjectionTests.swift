@@ -195,21 +195,10 @@ struct PrewarmSnapshotProjectionTests {
         #expect(AutoPrewarmDecision.lastRise(in: ring) != nil)
     }
 
+    /// The count bound holds, and it drops the oldest rather than the newest — the newest sample is
+    /// half of every rise the decision can still detect.
     @Test
-    func `the ring never grows past its capacity`() {
-        let series = (0..<PrewarmSampleRing.capacity).map { index in
-            PrewarmSample(
-                at: Self.now.addingTimeInterval(-Double(index)),
-                percentByLane: ["primary": 10])
-        }
-        let ring = PrewarmSampleRing.appending(Self.sample(agoMinutes: 0), to: series, now: Self.now)
-        #expect(ring.count == PrewarmSampleRing.capacity)
-    }
-
-    /// Trimming to capacity has to drop the oldest, not the newest: the newest sample is half of
-    /// every rise the decision can still detect.
-    @Test
-    func `trimming to capacity drops the oldest samples`() {
+    func `a full ring trims the oldest samples to stay at capacity`() {
         let series = (0..<PrewarmSampleRing.capacity).map { index in
             PrewarmSample(
                 at: Self.now.addingTimeInterval(-Double(index)),
@@ -217,6 +206,7 @@ struct PrewarmSnapshotProjectionTests {
         }
         let newest = Self.sample(agoMinutes: 0, percent: 99)
         let ring = PrewarmSampleRing.appending(newest, to: series, now: Self.now)
+        #expect(ring.count == PrewarmSampleRing.capacity)
         #expect(ring.last == newest)
     }
 }
