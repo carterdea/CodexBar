@@ -1850,6 +1850,8 @@ enum CostUsageScanner {
         let rows: [ClaudeUsageRow]
         let edits: [ClaudeEditRow]
         let parsedBytes: Int64
+        /// Disposition of the last assistant turn, carried into the next incremental pass.
+        let lastTurnMatchedFilter: Bool
     }
 
     enum ClaudePathRole: String, Codable, Equatable {

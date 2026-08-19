@@ -83,6 +83,7 @@ extension CostUsageScanner {
         range: CostUsageDayRange,
         providerFilter: ClaudeLogProviderFilter,
         startOffset: Int64 = 0,
+        priorTurnMatchedFilter: Bool = true,
         modelsDevCatalog: ModelsDevCatalog? = nil,
         modelsDevCacheRoot: URL? = nil) -> ClaudeParseResult
     {
@@ -92,10 +93,16 @@ extension CostUsageScanner {
                 range: range,
                 providerFilter: providerFilter,
                 startOffset: startOffset,
+                priorTurnMatchedFilter: priorTurnMatchedFilter,
                 modelsDevCatalog: modelsDevCatalog,
                 modelsDevCacheRoot: modelsDevCacheRoot,
                 checkCancellation: nil))
-            ?? ClaudeParseResult(days: [:], rows: [], edits: [], parsedBytes: startOffset)
+            ?? ClaudeParseResult(
+                days: [:],
+                rows: [],
+                edits: [],
+                parsedBytes: startOffset,
+                lastTurnMatchedFilter: priorTurnMatchedFilter)
     }
 
     static func parseClaudeFileCancellable(
@@ -103,6 +110,7 @@ extension CostUsageScanner {
         range: CostUsageDayRange,
         providerFilter: ClaudeLogProviderFilter,
         startOffset: Int64 = 0,
+        priorTurnMatchedFilter: Bool = true,
         modelsDevCatalog: ModelsDevCatalog? = nil,
         modelsDevCacheRoot: URL? = nil,
         checkCancellation: CancellationCheck? = nil) throws -> ClaudeParseResult
@@ -130,8 +138,8 @@ extension CostUsageScanner {
         var unkeyedRows: [ClaudeUsageRow] = []
         var edits = ClaudeEditCollector()
         // Edit records carry no provider marker, so they inherit the disposition of the assistant
-        // turn that requested them. Files that open with an edit have no turn to inherit from yet.
-        var lastTurnMatchedFilter = true
+        // turn that requested them, which an incremental pass inherits from the previous one.
+        var lastTurnMatchedFilter = priorTurnMatchedFilter
 
         let maxLineBytes = 512 * 1024
         // Keep the full line so usage at the tail isn't dropped on large tool outputs.
@@ -272,7 +280,12 @@ extension CostUsageScanner {
             add(dayKey: row.dayKey, model: row.model, tokens: tokens, days: &days)
         }
 
-        return ClaudeParseResult(days: days, rows: rows, edits: edits.rows, parsedBytes: parsedBytes)
+        return ClaudeParseResult(
+            days: days,
+            rows: rows,
+            edits: edits.rows,
+            parsedBytes: parsedBytes,
+            lastTurnMatchedFilter: lastTurnMatchedFilter)
     }
 
     private static func claudeInt(_ value: Any?) -> Int {
@@ -359,7 +372,7 @@ extension CostUsageScanner {
             }
             added = lines.count
         }
-        guard added > 0 || removed > 0 else { return nil }
+        guard added > 0 || removed > 0 || isCreate else { return nil }
 
         return ClaudeEditRow(
             dayKey: dayKey,
@@ -518,20 +531,28 @@ extension CostUsageScanner {
         cache.days = days
     }
 
+    /// What a parse contributes to a cached file entry, whether it came from a full scan or from
+    /// merging an incremental delta into what was already banked.
+    private struct ClaudeFileContents {
+        let rows: [ClaudeUsageRow]
+        let edits: [ClaudeEditRow]
+        let turnMatchedFilter: Bool
+        let parsedBytes: Int64?
+    }
+
     private static func makeClaudeFileUsage(
         mtimeMs: Int64,
         size: Int64,
-        rows: [ClaudeUsageRow],
-        edits: [ClaudeEditRow],
-        parsedBytes: Int64?) -> CostUsageFileUsage
+        contents: ClaudeFileContents) -> CostUsageFileUsage
     {
         makeFileUsage(
             mtimeUnixMs: mtimeMs,
             size: size,
             days: [:],
-            parsedBytes: parsedBytes,
-            claudeRows: rows,
-            claudeEdits: edits)
+            parsedBytes: contents.parsedBytes,
+            claudeRows: contents.rows,
+            claudeEdits: contents.edits,
+            claudeTurnMatchedFilter: contents.turnMatchedFilter)
     }
 
     /// Incremental parses resume mid-file, so a uuid already banked from an earlier pass must not
@@ -770,6 +791,7 @@ extension CostUsageScanner {
             let startOffset = cached.parsedBytes ?? cached.size
             let canIncremental = size > cached.size && startOffset > 0 && startOffset <= size
                 && cached.claudeRows != nil && cached.claudeEdits != nil
+                && cached.claudeTurnMatchedFilter != nil
             if canIncremental {
                 #if DEBUG
                 Self.recordClaudeScanWork(.transcriptParse)
@@ -779,6 +801,7 @@ extension CostUsageScanner {
                     range: state.range,
                     providerFilter: state.providerFilter,
                     startOffset: startOffset,
+                    priorTurnMatchedFilter: cached.claudeTurnMatchedFilter ?? true,
                     modelsDevCatalog: state.modelsDevCatalogResolver.resolve(),
                     modelsDevCacheRoot: state.modelsDevCacheRoot,
                     checkCancellation: state.checkCancellation)
@@ -787,9 +810,11 @@ extension CostUsageScanner {
                 state.cache.files[path] = Self.makeClaudeFileUsage(
                     mtimeMs: mtimeMs,
                     size: size,
-                    rows: mergedRows,
-                    edits: mergedEdits,
-                    parsedBytes: delta.parsedBytes)
+                    contents: ClaudeFileContents(
+                        rows: mergedRows,
+                        edits: mergedEdits,
+                        turnMatchedFilter: delta.lastTurnMatchedFilter,
+                        parsedBytes: delta.parsedBytes))
                 return
             }
         }
@@ -807,9 +832,11 @@ extension CostUsageScanner {
         let usage = Self.makeClaudeFileUsage(
             mtimeMs: mtimeMs,
             size: size,
-            rows: parsed.rows,
-            edits: parsed.edits,
-            parsedBytes: parsed.parsedBytes)
+            contents: ClaudeFileContents(
+                rows: parsed.rows,
+                edits: parsed.edits,
+                turnMatchedFilter: parsed.lastTurnMatchedFilter,
+                parsedBytes: parsed.parsedBytes))
         state.cache.files[path] = usage
     }
 

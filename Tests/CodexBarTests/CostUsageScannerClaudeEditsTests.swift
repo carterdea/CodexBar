@@ -201,6 +201,75 @@ struct CostUsageScannerClaudeEditsTests {
         #expect(entry.edits == CostUsageEditCounts(linesAdded: 2, linesRemoved: 1, filesCreated: 0))
     }
 
+    /// A create is a real event even when the resulting file has no lines, so it must still reach
+    /// `filesCreated` rather than being discarded by the added/removed guard.
+    @Test
+    func `parseClaudeFile counts an empty created file`() throws {
+        let env = try CostUsageTestEnvironment()
+        defer { env.cleanup() }
+
+        let day = try env.makeLocalNoon(year: 2026, month: 3, day: 4)
+        let fileURL = try env.writeClaudeProjectFile(
+            relativePath: "project-a/edits-empty-create.jsonl",
+            contents: env.jsonl([
+                [
+                    "type": "user",
+                    "uuid": "edit-empty",
+                    "timestamp": env.isoString(for: day),
+                    "toolUseResult": [
+                        "type": "create",
+                        "filePath": "/tmp/empty.swift",
+                        "content": "",
+                        "structuredPatch": [],
+                    ],
+                ],
+            ]))
+
+        let parsed = CostUsageScanner.parseClaudeFile(
+            fileURL: fileURL,
+            range: CostUsageScanner.CostUsageDayRange(since: day, until: day),
+            providerFilter: .all)
+
+        #expect(parsed.edits.count == 1)
+        #expect(parsed.edits[0].added == 0)
+        #expect(parsed.edits[0].created == 1)
+    }
+
+    /// An incremental parse resumes mid-file and can open on a tool result whose requesting turn
+    /// was read in an earlier pass. The provider disposition of that turn has to carry over, or the
+    /// edit is attributed to whichever provider the filter happens to default to.
+    @Test
+    func `parseClaudeFile inherits the prior pass's filter disposition`() throws {
+        let env = try CostUsageTestEnvironment()
+        defer { env.cleanup() }
+
+        let day = try env.makeLocalNoon(year: 2026, month: 3, day: 4)
+        let fileURL = try env.writeClaudeProjectFile(
+            relativePath: "project-a/edits-resume.jsonl",
+            contents: env.jsonl([
+                Self.editRecord(
+                    uuid: "edit-after-resume",
+                    timestamp: env.isoString(for: day),
+                    patchLines: [["+one", "-two"]]),
+            ]))
+        let range = CostUsageScanner.CostUsageDayRange(since: day, until: day)
+
+        let inherited = CostUsageScanner.parseClaudeFile(
+            fileURL: fileURL,
+            range: range,
+            providerFilter: .all,
+            priorTurnMatchedFilter: false)
+        #expect(inherited.edits.isEmpty)
+        #expect(inherited.lastTurnMatchedFilter == false)
+
+        let matched = CostUsageScanner.parseClaudeFile(
+            fileURL: fileURL,
+            range: range,
+            providerFilter: .all,
+            priorTurnMatchedFilter: true)
+        #expect(matched.edits.count == 1)
+    }
+
     /// The Claude fetcher always merges its report with a Pi sessions report, even an empty one.
     /// `merged(_:)` therefore has to carry edit counts through, or the scanner's work is discarded
     /// before the dashboard ever sees it and the panel cannot appear.

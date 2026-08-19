@@ -263,6 +263,10 @@ struct CostUsageFileUsage: Codable, Equatable {
     var codexTokenIndexAnchor: CostUsageCodexTokenIndexAnchor?
     var claudeRows: [CostUsageScanner.ClaudeUsageRow]?
     var claudeEdits: [CostUsageScanner.ClaudeEditRow]?
+    /// Whether the last assistant turn seen in this file matched the provider filter. An
+    /// incremental parse resumes mid-file and may open on a tool result whose requesting turn was
+    /// parsed in an earlier pass, so the disposition has to survive between passes.
+    var claudeTurnMatchedFilter: Bool?
     var codexScanFileId: String?
     var codexScanTargetSize: Int64?
     var codexScanComplete: Bool?
