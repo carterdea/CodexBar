@@ -14,13 +14,12 @@ struct SpendActivityMenuCardView: View {
         let series = SpendActivitySeries
             .make(from: self.points)
             .trailingWeeks(Self.weekCount)
-        let total = series.daily.reduce(0, SpendActivitySeries.saturatingAdd)
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(L("Token activity"))
                     .font(.system(size: NSFont.menuFont(ofSize: 0).pointSize))
                 Spacer(minLength: 8)
-                Text(UsageFormatter.tokenCountString(total))
+                Text(UsageFormatter.tokenCountString(series.totalTokens))
                     .font(.system(size: NSFont.smallSystemFontSize))
                     .foregroundStyle(.secondary)
             }

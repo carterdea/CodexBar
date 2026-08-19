@@ -54,37 +54,69 @@ struct SpendActivityProviderSplitTests {
     }
 
     @Test
-    func `the colour ramp ranks on the providers the tooltip lists`() throws {
+    func `a day that only cost money does not draw as an empty day`() throws {
         let day = Self.calendar.startOfDay(for: Self.now)
         let earlier = try #require(Self.calendar.date(byAdding: .day, value: -1, to: day))
+        // Codex priced the day but reported no token buckets for it, so its token count is 0.
         let series = SpendActivitySeries.make(
             from: [
                 .init(day: earlier, totalTokens: 0, providers: []),
                 .init(
                     day: day,
-                    totalTokens: 100,
-                    providers: [Self.activity(provider: .codex, name: "Codex", tokens: 100)]),
+                    totalTokens: 0,
+                    providers: [Self.activity(provider: .codex, name: "Codex", tokens: 0, cost: 3)]),
             ],
             now: Self.now,
             calendar: Self.calendar)
-        let levels = SpendActivityLevels.dailyLevels(series.rankedDaily)
         let dayIndex = try #require(series.daily.indices.last { series.isVisible($0) })
 
-        // A day only Codex worked must not draw like a day nobody worked.
-        #expect(levels[dayIndex] == 4)
-        #expect(levels[dayIndex - 1] == 0)
+        #expect(series.dailyLevels[dayIndex] == 1)
+        #expect(series.dailyLevels[dayIndex - 1] == 0)
     }
 
     @Test
-    func `points without a breakdown still rank on their day total`() throws {
+    func `flooring a priced day leaves the token ramp alone`() throws {
         let day = Self.calendar.startOfDay(for: Self.now)
+        let quiet = try #require(Self.calendar.date(byAdding: .day, value: -1, to: day))
         let series = SpendActivitySeries.make(
-            from: [.init(day: day, totalTokens: 250)],
+            from: [
+                .init(
+                    day: quiet,
+                    totalTokens: 100,
+                    providers: [Self.activity(provider: .codex, name: "Codex", tokens: 100)]),
+                .init(
+                    day: day,
+                    totalTokens: 1000,
+                    providers: [Self.activity(provider: .claude, name: "Claude", tokens: 1000)]),
+            ],
             now: Self.now,
             calendar: Self.calendar)
         let dayIndex = try #require(series.daily.indices.last { series.isVisible($0) })
 
-        #expect(series.rankedDaily[dayIndex] == 250)
+        #expect(series.dailyLevels[dayIndex] == 4)
+        #expect(series.dailyLevels[dayIndex - 1] == 1)
+    }
+
+    @Test
+    func `two points on one day list their provider once`() throws {
+        let day = Self.calendar.startOfDay(for: Self.now)
+        let series = SpendActivitySeries.make(
+            from: [
+                .init(
+                    day: day,
+                    totalTokens: 40,
+                    providers: [Self.activity(provider: .codex, name: "Codex", tokens: 40, cost: 1)]),
+                .init(
+                    day: day,
+                    totalTokens: 60,
+                    providers: [Self.activity(provider: .codex, name: "Codex", tokens: 60, cost: 2)]),
+            ],
+            now: Self.now,
+            calendar: Self.calendar)
+        let dayIndex = try #require(series.daily.indices.last { series.isVisible($0) })
+
+        #expect(series.providers[dayIndex].map(\.tokens) == [100])
+        #expect(series.providers[dayIndex].map(\.costUSD) == [3])
     }
 
     @Test
@@ -121,13 +153,14 @@ struct SpendActivityProviderSplitTests {
     private static func activity(
         provider: UsageProvider,
         name: String,
-        tokens: Int) -> SpendDashboardModel.ProviderActivity
+        tokens: Int,
+        cost: Double = 0) -> SpendDashboardModel.ProviderActivity
     {
         SpendDashboardModel.ProviderActivity(
             provider: provider,
             displayName: name,
             tokens: tokens,
-            costUSD: 0)
+            costUSD: cost)
     }
 
     private static func input(
