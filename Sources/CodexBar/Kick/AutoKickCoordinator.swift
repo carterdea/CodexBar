@@ -103,6 +103,8 @@ final class AutoKickCoordinator {
     /// feature being broken. The cost is one number per account in local defaults, which never
     /// leaves the machine.
     private func recordWeeklyUsage() {
+        // Provider-specific by design: Claude and Codex are the only providers with a kickable session
+        // window, so they are the only ones whose weekly peak is worth sampling.
         for provider in [UsageProvider.claude, .codex] {
             guard let key = self.peakKey(for: provider),
                   let percent = self.weeklyPercent(for: provider),
