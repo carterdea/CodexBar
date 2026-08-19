@@ -83,6 +83,7 @@ extension CostUsageScanner {
         range: CostUsageDayRange,
         providerFilter: ClaudeLogProviderFilter,
         startOffset: Int64 = 0,
+        priorTurnMatchedFilter: Bool = true,
         modelsDevCatalog: ModelsDevCatalog? = nil,
         modelsDevCacheRoot: URL? = nil) -> ClaudeParseResult
     {
@@ -92,9 +93,16 @@ extension CostUsageScanner {
                 range: range,
                 providerFilter: providerFilter,
                 startOffset: startOffset,
+                priorTurnMatchedFilter: priorTurnMatchedFilter,
                 modelsDevCatalog: modelsDevCatalog,
                 modelsDevCacheRoot: modelsDevCacheRoot,
-                checkCancellation: nil)) ?? ClaudeParseResult(days: [:], rows: [], parsedBytes: startOffset)
+                checkCancellation: nil))
+            ?? ClaudeParseResult(
+                days: [:],
+                rows: [],
+                edits: [],
+                parsedBytes: startOffset,
+                lastTurnMatchedFilter: priorTurnMatchedFilter)
     }
 
     static func parseClaudeFileCancellable(
@@ -102,48 +110,18 @@ extension CostUsageScanner {
         range: CostUsageDayRange,
         providerFilter: ClaudeLogProviderFilter,
         startOffset: Int64 = 0,
+        priorTurnMatchedFilter: Bool = true,
         modelsDevCatalog: ModelsDevCatalog? = nil,
         modelsDevCacheRoot: URL? = nil,
         checkCancellation: CancellationCheck? = nil) throws -> ClaudeParseResult
     {
-        func add(dayKey: String, model: String, tokens: ClaudeTokens, days: inout [String: [String: [Int]]]) {
-            guard CostUsageDayRange.isInRange(dayKey: dayKey, since: range.scanSinceKey, until: range.scanUntilKey)
-            else { return }
-            let normModel = CostUsagePricing.normalizeClaudeModel(model)
-            var dayModels = days[dayKey] ?? [:]
-            var packed = dayModels[normModel] ?? [0, 0, 0, 0, 0, 0, 0, 0]
-            packed[0] = (packed[safe: 0] ?? 0) + tokens.input
-            packed[1] = (packed[safe: 1] ?? 0) + tokens.cacheRead
-            packed[2] = (packed[safe: 2] ?? 0) + tokens.cacheCreate
-            packed[3] = (packed[safe: 3] ?? 0) + tokens.output
-            packed[4] = (packed[safe: 4] ?? 0) + tokens.costNanos
-            packed[5] = (packed[safe: 5] ?? 0) + 1
-            packed[6] = (packed[safe: 6] ?? 0) + (tokens.costPriced ? 1 : 0)
-            packed[7] = (packed[safe: 7] ?? 0) + tokens.cacheCreate1h
-            dayModels[normModel] = packed
-            days[dayKey] = dayModels
-        }
-
-        func toInt(_ v: Any?) -> Int {
-            if let n = v as? NSNumber {
-                return n.intValue
-            }
-            return 0
-        }
-
-        func toBool(_ value: Any?) -> Bool {
-            if let bool = value as? Bool {
-                return bool
-            }
-            if let number = value as? NSNumber {
-                return number.boolValue
-            }
-            return false
-        }
-
         let pathRole = Self.claudePathRole(fileURL: fileURL)
         var keyedRows: [String: ClaudeUsageRow] = [:]
         var unkeyedRows: [ClaudeUsageRow] = []
+        var edits = ClaudeEditCollector()
+        // Edit records carry no provider marker, so they inherit the disposition of the assistant
+        // turn that requested them, which an incremental pass inherits from the previous one.
+        var lastTurnMatchedFilter = priorTurnMatchedFilter
 
         let maxLineBytes = 512 * 1024
         // Keep the full line so usage at the tail isn't dropped on large tool outputs.
@@ -160,7 +138,23 @@ extension CostUsageScanner {
                 checkCancellation: checkCancellation,
                 onLine: { line in
                     guard !line.bytes.isEmpty else { return }
-                    guard !line.wasTruncated else { return }
+                    guard !line.wasTruncated else {
+                        // An assistant record too large to parse leaves this turn's provider
+                        // unknown, and the tool results that follow it belong to that turn.
+                        // Carrying the previous turn's disposition would file its edits under the
+                        // wrong provider, so stop attributing until a turn we can read sets it.
+                        if line.bytes.containsAscii(#""type":"assistant""#) {
+                            lastTurnMatchedFilter = false
+                        }
+                        return
+                    }
+
+                    // Edit records ride on their own lines (Write/Edit tool results), so they are
+                    // collected before the assistant/usage guards below reject everything else.
+                    if lastTurnMatchedFilter {
+                        edits.consume(line: line, range: range)
+                    }
+
                     guard line.bytes.containsAscii(#""type":"assistant""#) else { return }
                     guard line.bytes.containsAscii(#""usage""#) else { return }
 
@@ -170,7 +164,10 @@ extension CostUsageScanner {
                             let type = obj["type"] as? String,
                             type == "assistant"
                         else { return }
-                        guard Self.matchesClaudeProviderFilter(obj: obj, filter: providerFilter) else { return }
+                        lastTurnMatchedFilter = Self.matchesClaudeProviderFilter(
+                            obj: obj,
+                            filter: providerFilter)
+                        guard lastTurnMatchedFilter else { return }
 
                         guard let tsText = obj["timestamp"] as? String, let timestamp = Self.dateFromTimestamp(tsText)
                         else { return }
@@ -182,13 +179,13 @@ extension CostUsageScanner {
                         guard let model = message["model"] as? String else { return }
                         guard let usage = message["usage"] as? [String: Any] else { return }
 
-                        let input = max(0, toInt(usage["input_tokens"]))
-                        let cacheCreate = max(0, toInt(usage["cache_creation_input_tokens"]))
+                        let input = max(0, Self.claudeInt(usage["input_tokens"]))
+                        let cacheCreate = max(0, Self.claudeInt(usage["cache_creation_input_tokens"]))
                         let cacheCreate1h = Self.claudeOneHourCacheCreationTokens(
                             usage: usage,
                             total: cacheCreate)
-                        let cacheRead = max(0, toInt(usage["cache_read_input_tokens"]))
-                        let output = max(0, toInt(usage["output_tokens"]))
+                        let cacheRead = max(0, Self.claudeInt(usage["cache_read_input_tokens"]))
+                        let output = max(0, Self.claudeInt(usage["output_tokens"]))
                         if input == 0, cacheCreate == 0, cacheRead == 0, output == 0 {
                             return
                         }
@@ -233,7 +230,7 @@ extension CostUsageScanner {
                             messageId: messageId,
                             requestId: requestId,
                             timestampUnixMs: Int64((timestamp.timeIntervalSince1970 * 1000).rounded()),
-                            isSidechain: toBool(obj["isSidechain"]),
+                            isSidechain: Self.claudeBool(obj["isSidechain"]),
                             pathRole: pathRole,
                             input: tokens.input,
                             cacheRead: tokens.cacheRead,
@@ -271,10 +268,114 @@ extension CostUsageScanner {
                 output: row.output,
                 costNanos: row.costNanos,
                 costPriced: row.costPriced ?? (row.costNanos > 0))
-            add(dayKey: row.dayKey, model: row.model, tokens: tokens, days: &days)
+            Self.addClaudeUsage(
+                dayKey: row.dayKey,
+                model: row.model,
+                tokens: tokens,
+                range: range,
+                days: &days)
         }
 
-        return ClaudeParseResult(days: days, rows: rows, parsedBytes: parsedBytes)
+        return ClaudeParseResult(
+            days: days,
+            rows: rows,
+            edits: edits.rows,
+            parsedBytes: parsedBytes,
+            lastTurnMatchedFilter: lastTurnMatchedFilter)
+    }
+
+    private static func claudeInt(_ value: Any?) -> Int {
+        if let number = value as? NSNumber {
+            return number.intValue
+        }
+        return 0
+    }
+
+    private static func claudeBool(_ value: Any?) -> Bool {
+        if let bool = value as? Bool {
+            return bool
+        }
+        if let number = value as? NSNumber {
+            return number.boolValue
+        }
+        return false
+    }
+
+    /// Accumulates a transcript's edit records, deduping by record uuid within the file.
+    private struct ClaudeEditCollector {
+        private(set) var rows: [ClaudeEditRow] = []
+        private var seenUUIDs: Set<String> = []
+
+        /// Cheap byte checks first: most lines are neither an edit nor worth decoding.
+        mutating func consume(line: CostUsageJsonl.Line, range: CostUsageDayRange) {
+            guard line.bytes.containsAscii(#""toolUseResult""#),
+                  line.bytes.containsAscii(#""structuredPatch""#)
+                  || line.bytes.containsAscii(#""type":"create""#)
+            else { return }
+            autoreleasepool {
+                guard let obj = (try? JSONSerialization.jsonObject(with: line.bytes)) as? [String: Any]
+                else { return }
+                if let row = CostUsageScanner.claudeEditRow(obj: obj, range: range, seen: &self.seenUUIDs) {
+                    self.rows.append(row)
+                }
+            }
+        }
+    }
+
+    /// Reduce one transcript record to its edit contribution, mirroring Tokemon's `collector.ts`.
+    /// `structuredPatch` hunks carry unified-diff lines prefixed `+`, `-` or a space; a file create
+    /// arrives with an empty patch and the whole body in `content`.
+    /// Returns nil when the record is not an edit, falls outside the scan window, or repeats a uuid
+    /// already seen in this file.
+    private static func claudeEditRow(
+        obj: [String: Any],
+        range: CostUsageDayRange,
+        seen: inout Set<String>) -> ClaudeEditRow?
+    {
+        guard let result = obj["toolUseResult"] as? [String: Any] else { return nil }
+        let patch = result["structuredPatch"] as? [[String: Any]]
+        let isCreate = (result["type"] as? String) == "create"
+        guard patch != nil || isCreate else { return nil }
+
+        guard let tsText = obj["timestamp"] as? String else { return nil }
+        guard let dayKey = Self.dayKeyFromTimestamp(tsText, calendar: range.calendar)
+            ?? Self.dayKeyFromParsedISO(tsText, calendar: range.calendar)
+        else { return nil }
+        guard CostUsageDayRange.isInRange(dayKey: dayKey, since: range.scanSinceKey, until: range.scanUntilKey)
+        else { return nil }
+
+        let uuid = obj["uuid"] as? String
+        if let uuid {
+            guard seen.insert(uuid).inserted else { return nil }
+        }
+
+        var added = 0
+        var removed = 0
+        for hunk in patch ?? [] {
+            for line in hunk["lines"] as? [String] ?? [] {
+                if line.hasPrefix("+") {
+                    added += 1
+                } else if line.hasPrefix("-") {
+                    removed += 1
+                }
+            }
+        }
+        if added == 0, removed == 0, isCreate, let content = result["content"] as? String {
+            var lines = content.split(separator: "\n", omittingEmptySubsequences: false)
+            // A conventional trailing newline produces a final empty component that is not a line.
+            if lines.last?.isEmpty == true {
+                lines.removeLast()
+            }
+            added = lines.count
+        }
+        guard added > 0 || removed > 0 || isCreate else { return nil }
+
+        return ClaudeEditRow(
+            dayKey: dayKey,
+            uuid: uuid,
+            added: added,
+            removed: removed,
+            created: isCreate ? 1 : 0)
     }
 
     private static func claudeOneHourCacheCreationTokens(usage: [String: Any], total: Int) -> Int {
@@ -363,6 +464,48 @@ extension CostUsageScanner {
         return rows
     }
 
+    /// Claude copies a transcript wholesale when a session is forked or resumed, so the same edit
+    /// record surfaces in more than one file. Parsing dedupes by uuid within a file; this dedupes
+    /// across them. Records without a uuid cannot be matched, so they are kept as-is.
+    private static func reconciledClaudeEdits(cache: CostUsageCache) -> [ClaudeEditRow] {
+        var edits: [ClaudeEditRow] = []
+        var seen: Set<String> = []
+
+        for path in cache.files.keys.sorted() {
+            guard let fileEdits = cache.files[path]?.claudeEdits else { continue }
+            Self.appendDedupedClaudeEdits(fileEdits, into: &edits, seen: &seen)
+        }
+        return edits
+    }
+
+    /// Keeps the first row for each uuid. Rows that omit a uuid cannot be matched against anything,
+    /// so they are always kept.
+    private static func appendDedupedClaudeEdits(
+        _ edits: [ClaudeEditRow],
+        into result: inout [ClaudeEditRow],
+        seen: inout Set<String>)
+    {
+        for edit in edits {
+            guard let uuid = edit.uuid else {
+                result.append(edit)
+                continue
+            }
+            guard seen.insert(uuid).inserted else { continue }
+            result.append(edit)
+        }
+    }
+
+    private static func rebuildClaudeEditDays(cache: inout CostUsageCache) {
+        var days: [String: CostUsageEditCounts] = [:]
+        for edit in Self.reconciledClaudeEdits(cache: cache) {
+            days[edit.dayKey] = (days[edit.dayKey] ?? .zero) + CostUsageEditCounts(
+                linesAdded: edit.added,
+                linesRemoved: edit.removed,
+                filesCreated: edit.created)
+        }
+        cache.claudeEditDays = days
+    }
+
     private static func rebuildClaudeDays(cache: inout CostUsageCache) {
         var days: [String: [String: [Int]]] = [:]
 
@@ -384,18 +527,37 @@ extension CostUsageScanner {
         cache.days = days
     }
 
+    /// What a parse contributes to a cached file entry, whether it came from a full scan or from
+    /// merging an incremental delta into what was already banked.
+    private struct ClaudeFileContents {
+        let rows: [ClaudeUsageRow]
+        let edits: [ClaudeEditRow]
+        let turnMatchedFilter: Bool
+        let parsedBytes: Int64?
+    }
+
     private static func makeClaudeFileUsage(
         mtimeMs: Int64,
         size: Int64,
-        rows: [ClaudeUsageRow],
-        parsedBytes: Int64?) -> CostUsageFileUsage
+        contents: ClaudeFileContents) -> CostUsageFileUsage
     {
         makeFileUsage(
             mtimeUnixMs: mtimeMs,
             size: size,
             days: [:],
-            parsedBytes: parsedBytes,
-            claudeRows: rows)
+            parsedBytes: contents.parsedBytes,
+            claudeRows: contents.rows,
+            claudeEdits: contents.edits,
+            claudeTurnMatchedFilter: contents.turnMatchedFilter)
+    }
+
+    /// Incremental parses resume mid-file, so a uuid already banked from an earlier pass must not
+    /// be counted again from the delta.
+    private static func mergeClaudeEdits(existing: [ClaudeEditRow], delta: [ClaudeEditRow]) -> [ClaudeEditRow] {
+        var merged = existing
+        var seen = Set(existing.compactMap(\.uuid))
+        Self.appendDedupedClaudeEdits(delta, into: &merged, seen: &seen)
+        return merged
     }
 
     private static let vertexProviderKeys: Set<String> = [
@@ -410,6 +572,31 @@ extension CostUsageScanner {
         "vendor",
         "client",
     ]
+
+    /// Fold one assistant turn's tokens into the packed per-day, per-model accumulator.
+    private static func addClaudeUsage(
+        dayKey: String,
+        model: String,
+        tokens: ClaudeTokens,
+        range: CostUsageDayRange,
+        days: inout [String: [String: [Int]]])
+    {
+        guard CostUsageDayRange.isInRange(dayKey: dayKey, since: range.scanSinceKey, until: range.scanUntilKey)
+        else { return }
+        let normModel = CostUsagePricing.normalizeClaudeModel(model)
+        var dayModels = days[dayKey] ?? [:]
+        var packed = dayModels[normModel] ?? [0, 0, 0, 0, 0, 0, 0, 0]
+        packed[0] = (packed[safe: 0] ?? 0) + tokens.input
+        packed[1] = (packed[safe: 1] ?? 0) + tokens.cacheRead
+        packed[2] = (packed[safe: 2] ?? 0) + tokens.cacheCreate
+        packed[3] = (packed[safe: 3] ?? 0) + tokens.output
+        packed[4] = (packed[safe: 4] ?? 0) + tokens.costNanos
+        packed[5] = (packed[safe: 5] ?? 0) + 1
+        packed[6] = (packed[safe: 6] ?? 0) + (tokens.costPriced ? 1 : 0)
+        packed[7] = (packed[safe: 7] ?? 0) + tokens.cacheCreate1h
+        dayModels[normModel] = packed
+        days[dayKey] = dayModels
+    }
 
     private static func matchesClaudeProviderFilter(
         obj: [String: Any],
@@ -624,7 +811,8 @@ extension CostUsageScanner {
         if let cached = state.cache.files[path], !state.forceFullScan {
             let startOffset = cached.parsedBytes ?? cached.size
             let canIncremental = size > cached.size && startOffset > 0 && startOffset <= size
-                && cached.claudeRows != nil
+                && cached.claudeRows != nil && cached.claudeEdits != nil
+                && cached.claudeTurnMatchedFilter != nil
             if canIncremental {
                 #if DEBUG
                 Self.recordClaudeScanWork(.transcriptParse)
@@ -634,15 +822,20 @@ extension CostUsageScanner {
                     range: state.range,
                     providerFilter: state.providerFilter,
                     startOffset: startOffset,
+                    priorTurnMatchedFilter: cached.claudeTurnMatchedFilter ?? true,
                     modelsDevCatalog: state.modelsDevCatalogResolver.resolve(),
                     modelsDevCacheRoot: state.modelsDevCacheRoot,
                     checkCancellation: state.checkCancellation)
                 let mergedRows = Self.mergeClaudeRows(existing: cached.claudeRows ?? [], delta: delta.rows)
+                let mergedEdits = Self.mergeClaudeEdits(existing: cached.claudeEdits ?? [], delta: delta.edits)
                 state.cache.files[path] = Self.makeClaudeFileUsage(
                     mtimeMs: mtimeMs,
                     size: size,
-                    rows: mergedRows,
-                    parsedBytes: delta.parsedBytes)
+                    contents: ClaudeFileContents(
+                        rows: mergedRows,
+                        edits: mergedEdits,
+                        turnMatchedFilter: delta.lastTurnMatchedFilter,
+                        parsedBytes: delta.parsedBytes))
                 return
             }
         }
@@ -660,8 +853,11 @@ extension CostUsageScanner {
         let usage = Self.makeClaudeFileUsage(
             mtimeMs: mtimeMs,
             size: size,
-            rows: parsed.rows,
-            parsedBytes: parsed.parsedBytes)
+            contents: ClaudeFileContents(
+                rows: parsed.rows,
+                edits: parsed.edits,
+                turnMatchedFilter: parsed.lastTurnMatchedFilter,
+                parsedBytes: parsed.parsedBytes))
         state.cache.files[path] = usage
     }
 
@@ -799,6 +995,7 @@ extension CostUsageScanner {
             }
 
             Self.rebuildClaudeDays(cache: &cache)
+            Self.rebuildClaudeEditDays(cache: &cache)
             Self.pruneDays(cache: &cache, sinceKey: range.scanSinceKey, untilKey: range.scanUntilKey)
             cache.scanSinceKey = range.scanSinceKey
             cache.scanUntilKey = range.scanUntilKey
@@ -887,6 +1084,7 @@ extension CostUsageScanner {
         var totalTokens = 0
         var totalCost: Double = 0
         var costSeen = false
+        let editDays = cache.claudeEditDays ?? [:]
         let costScale = 1_000_000_000.0
         var repricedCosts: [ClaudeDayModelKey: ClaudeRepricedCost] = [:]
         let rows = Self.reconciledClaudeRows(cache: cache)
@@ -929,6 +1127,10 @@ extension CostUsageScanner {
             repricedCosts[key] = aggregate
         }
 
+        // Days are driven by usage, not by edits: an edit record always sits between two assistant
+        // turns, so a day with edits and no usage would need a session to end on a tool result that
+        // crossed local midnight. Emitting an entry for that case would put a nil-cost day into the
+        // window and take the whole currency group's total with it.
         let dayKeys = cache.days.keys.sorted().filter {
             CostUsageDayRange.isInRange(dayKey: $0, since: range.sinceKey, until: range.untilKey)
         }
@@ -936,6 +1138,7 @@ extension CostUsageScanner {
         for day in dayKeys {
             guard let models = cache.days[day] else { continue }
             let modelNames = models.keys.sorted()
+            let edits = editDays[day]
 
             var dayInput = 0
             var dayOutput = 0
@@ -995,7 +1198,8 @@ extension CostUsageScanner {
                 totalTokens: dayTotal,
                 costUSD: entryCost,
                 modelsUsed: modelNames,
-                modelBreakdowns: sortedBreakdown))
+                modelBreakdowns: sortedBreakdown,
+                edits: edits))
 
             totalInput += dayInput
             totalOutput += dayOutput

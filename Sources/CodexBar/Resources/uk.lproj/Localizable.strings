@@ -1321,6 +1321,9 @@
 "Coverage" = "Охоплення";
 "Estimated spend" = "Орієнтовні витрати";
 "Tracked tokens" = "Відстежувані токени";
+"Code written" = "Написано коду";
+"Lines changed" = "Змінено рядків";
+"Files created" = "Створено файлів";
 "Subscriptions" = "Підписки";
 "By subscription" = "За підписками";
 "No model-level history" = "Немає історії за моделями";

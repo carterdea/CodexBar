@@ -3,7 +3,9 @@ import Foundation
 /// In-memory working set for one bounded scan. Codex persists this shape as normalized
 /// `CostUsageStore` rows; Claude and Vertex use their independent compact JSON cache.
 struct CostUsageCache: Codable, Equatable, @unchecked Sendable {
-    var version: Int = 1
+    /// Bumped to 2 for Claude edit counts: older artifacts have no `claudeEdits`, so they are
+    /// discarded on load and rebuilt rather than reporting zero lines written.
+    var version: Int = 2
     var lastScanUnixMs: Int64 = 0
     var scanSinceKey: String?
     var scanUntilKey: String?
@@ -24,6 +26,8 @@ struct CostUsageCache: Codable, Equatable, @unchecked Sendable {
     var codexActiveLookbackState: CostUsageCodexActiveLookbackState?
     var files: [String: CostUsageFileUsage] = [:]
     var days: [String: [String: [Int]]] = [:]
+    /// Claude-only, per `CostUsageScanner.ClaudeEditRow`. Keyed by day.
+    var claudeEditDays: [String: CostUsageEditCounts]?
     var roots: [String: Int64]?
 }
 
@@ -258,6 +262,11 @@ struct CostUsageFileUsage: Codable, Equatable {
     var codexTokenTimestampsMonotonic: Bool?
     var codexTokenIndexAnchor: CostUsageCodexTokenIndexAnchor?
     var claudeRows: [CostUsageScanner.ClaudeUsageRow]?
+    var claudeEdits: [CostUsageScanner.ClaudeEditRow]?
+    /// Whether the last assistant turn seen in this file matched the provider filter. An
+    /// incremental parse resumes mid-file and may open on a tool result whose requesting turn was
+    /// parsed in an earlier pass, so the disposition has to survive between passes.
+    var claudeTurnMatchedFilter: Bool?
     var codexScanFileId: String?
     var codexScanTargetSize: Int64?
     var codexScanComplete: Bool?

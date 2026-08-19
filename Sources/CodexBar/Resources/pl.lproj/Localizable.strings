@@ -1325,6 +1325,9 @@
 "Coverage" = "Pokrycie";
 "Estimated spend" = "Szacowane wydatki";
 "Tracked tokens" = "Śledzone tokeny";
+"Code written" = "Napisany kod";
+"Lines changed" = "Zmienione wiersze";
+"Files created" = "Utworzone pliki";
 "Subscriptions" = "Subskrypcje";
 "By subscription" = "Według subskrypcji";
 "No model-level history" = "Brak historii na poziomie modeli";

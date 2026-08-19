@@ -1321,6 +1321,9 @@
 "Coverage" = "Dekking";
 "Estimated spend" = "Geschatte uitgaven";
 "Tracked tokens" = "Bijgehouden tokens";
+"Code written" = "Geschreven code";
+"Lines changed" = "Gewijzigde regels";
+"Files created" = "Aangemaakte bestanden";
 "Subscriptions" = "Abonnementen";
 "By subscription" = "Per abonnement";
 "No model-level history" = "Geen geschiedenis op modelniveau";

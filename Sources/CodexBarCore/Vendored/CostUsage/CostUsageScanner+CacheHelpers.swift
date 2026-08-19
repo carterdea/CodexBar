@@ -235,6 +235,8 @@ extension CostUsageScanner {
         codexTokenTimestampsMonotonic: Bool? = nil,
         codexTokenIndexAnchor: CostUsageCodexTokenIndexAnchor? = nil,
         claudeRows: [ClaudeUsageRow]? = nil,
+        claudeEdits: [ClaudeEditRow]? = nil,
+        claudeTurnMatchedFilter: Bool? = nil,
         codexScanFileId: String? = nil,
         codexScanTargetSize: Int64? = nil,
         codexScanComplete: Bool? = nil,
@@ -276,6 +278,8 @@ extension CostUsageScanner {
             codexTokenTimestampsMonotonic: codexTokenTimestampsMonotonic,
             codexTokenIndexAnchor: codexTokenIndexAnchor,
             claudeRows: claudeRows,
+            claudeEdits: claudeEdits,
+            claudeTurnMatchedFilter: claudeTurnMatchedFilter,
             codexScanFileId: codexScanFileId,
             codexScanTargetSize: codexScanTargetSize,
             codexScanComplete: codexScanComplete,
@@ -1340,6 +1344,11 @@ extension CostUsageScanner {
         for key in cache.days.keys where !CostUsageDayRange.isInRange(dayKey: key, since: sinceKey, until: untilKey) {
             cache.days.removeValue(forKey: key)
         }
+        guard var editDays = cache.claudeEditDays else { return }
+        for key in editDays.keys where !CostUsageDayRange.isInRange(dayKey: key, since: sinceKey, until: untilKey) {
+            editDays.removeValue(forKey: key)
+        }
+        cache.claudeEditDays = editDays
     }
 
     static func pruneForceRescanFilesOutsideWindow(

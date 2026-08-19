@@ -1352,6 +1352,9 @@
 "Coverage" = "涵蓋範圍";
 "Estimated spend" = "預估支出";
 "Tracked tokens" = "已追蹤 token";
+"Code written" = "已寫程式碼";
+"Lines changed" = "變更行數";
+"Files created" = "建立檔案數";
 "Subscriptions" = "訂閱";
 "By subscription" = "依訂閱";
 "No model-level history" = "尚無模型層級歷史";

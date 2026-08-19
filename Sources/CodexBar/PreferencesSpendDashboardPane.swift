@@ -19,6 +19,29 @@ func spendDashboardRankText(_ rank: Int) -> String {
     "#\(codexBarLocalizedInteger(rank))"
 }
 
+/// "+412.3K / -98.1K". The signs say which side of the diff each number came from.
+func spendDashboardLinesChangedText(added: Int, removed: Int) -> String {
+    "+\(spendDashboardLineCountText(added)) / -\(spendDashboardLineCountText(removed))"
+}
+
+/// Line counts keep one decimal at every magnitude, unlike `UsageFormatter.tokenCountString`,
+/// which drops it above 10 units. Tokens are read as an order of magnitude; lines are not.
+private func spendDashboardLineCountText(_ value: Int) -> String {
+    let units: [(scale: Int, suffix: String)] = [
+        (1_000_000_000, "B"),
+        (1_000_000, "M"),
+        (1000, "K"),
+    ]
+    for unit in units where value >= unit.scale {
+        var text = String(format: "%.1f", Double(value) / Double(unit.scale))
+        if text.hasSuffix(".0") {
+            text.removeLast(2)
+        }
+        return text + unit.suffix
+    }
+    return codexBarLocalizedInteger(value)
+}
+
 func spendDashboardRefreshFailureText(_ count: Int) -> String {
     "\(L("Refresh failures")): \(codexBarLocalizedInteger(count))"
 }
@@ -310,6 +333,10 @@ struct SpendDashboardPane: View {
             }
         }
 
+        if self.settings.costUsageEnabled, let codeWritten = self.controller.model.codeWritten {
+            SpendCodeWrittenPanel(codeWritten: codeWritten)
+        }
+
         if self.settings.costUsageEnabled, !self.controller.model.tokenActivity.isEmpty {
             SpendDashboardPanel {
                 SpendActivityHeatmapView(points: self.controller.model.tokenActivity)
@@ -469,6 +496,38 @@ private struct SpendSummaryValue: View {
             Text(self.value)
                 .font(.system(.title2, design: .rounded, weight: .semibold))
                 .monospacedDigit()
+        }
+    }
+}
+
+private struct SpendCodeWrittenPanel: View {
+    let codeWritten: CostUsageEditCounts
+
+    var body: some View {
+        SpendDashboardPanel {
+            VStack(alignment: .leading, spacing: 12) {
+                // Provider-specific by design: this panel's source is Claude edit records, so it
+                // names Claude rather than reading as a total that spans both providers.
+                HStack(spacing: 8) {
+                    Text(L("Code written")).font(.headline)
+                    SpendProviderIcon(provider: .claude)
+                    Text(ProviderDescriptorRegistry.descriptor(for: .claude).metadata.displayName)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                }
+                HStack(spacing: 24) {
+                    SpendSummaryValue(
+                        title: L("Lines changed"),
+                        value: spendDashboardLinesChangedText(
+                            added: self.codeWritten.linesAdded,
+                            removed: self.codeWritten.linesRemoved))
+                    SpendSummaryValue(
+                        title: L("Files created"),
+                        value: codexBarLocalizedInteger(self.codeWritten.filesCreated))
+                    Spacer()
+                }
+            }
         }
     }
 }

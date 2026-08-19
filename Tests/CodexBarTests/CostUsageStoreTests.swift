@@ -1009,6 +1009,7 @@ extension CostUsageStoreTests {
             "43609cc56f76a003",
             "b975eb705f905b9a",
             "47144baa8daccf52",
+            "3c1ec2b780582978",
         ])
         let predecessorHash = "43609cc56f76a003"
         let predecessorVersion = CostUsageStore.combinedSchemaVersion(

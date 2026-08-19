@@ -1323,6 +1323,9 @@
 "Coverage" = "Охват";
 "Estimated spend" = "Предполагаемые расходы";
 "Tracked tokens" = "Отслеживаемые токены";
+"Code written" = "Написано кода";
+"Lines changed" = "Изменено строк";
+"Files created" = "Создано файлов";
 "Subscriptions" = "Подписки";
 "By subscription" = "По подпискам";
 "No model-level history" = "Нет истории по моделям";

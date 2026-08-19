@@ -288,6 +288,42 @@ public struct CostUsageProjectSourceBreakdown: Sendable, Equatable {
     }
 }
 
+/// Lines and files touched by Claude edit records (`toolUseResult`). Codex rollouts carry no edit
+/// records, so this is Claude-only by construction and must never appear on a table that merges the
+/// two providers: a merged row would present Claude's count as the pair's total.
+public struct CostUsageEditCounts: Codable, Equatable, Sendable {
+    public static let zero = Self(linesAdded: 0, linesRemoved: 0, filesCreated: 0)
+
+    public let linesAdded: Int
+    public let linesRemoved: Int
+    public let filesCreated: Int
+
+    public init(linesAdded: Int, linesRemoved: Int, filesCreated: Int) {
+        self.linesAdded = linesAdded
+        self.linesRemoved = linesRemoved
+        self.filesCreated = filesCreated
+    }
+
+    public static func + (lhs: Self, rhs: Self) -> Self {
+        Self(
+            linesAdded: self.saturatingAdd(lhs.linesAdded, rhs.linesAdded),
+            linesRemoved: self.saturatingAdd(lhs.linesRemoved, rhs.linesRemoved),
+            filesCreated: self.saturatingAdd(lhs.filesCreated, rhs.filesCreated))
+    }
+
+    /// These counts are decoded from an on-disk cache, so a corrupt artifact must degrade the
+    /// figure rather than trap the dashboard building it. Saturating matches every other token
+    /// and byte aggregate in the app.
+    private static func saturatingAdd(_ lhs: Int, _ rhs: Int) -> Int {
+        let result = lhs.addingReportingOverflow(rhs)
+        return result.overflow ? .max : result.partialValue
+    }
+
+    public static func += (lhs: inout Self, rhs: Self) {
+        lhs = lhs + rhs
+    }
+}
+
 public struct CostUsageDailyReport: Sendable, Decodable {
     public struct ModelBreakdown: Sendable, Decodable, Equatable {
         public let modelName: String
@@ -360,6 +396,11 @@ public struct CostUsageDailyReport: Sendable, Decodable {
         public let costUSD: Double?
         public let modelsUsed: [String]?
         public let modelBreakdowns: [ModelBreakdown]?
+        /// Claude-only: Codex rollouts carry no edit records. `merged(_:)` sums these like any
+        /// other count, because it also merges same-provider reports (Claude plus its Pi sessions)
+        /// where dropping them would discard real data. Provider siloing is enforced where the
+        /// figure is displayed — never present this as a total spanning both providers.
+        public let edits: CostUsageEditCounts?
 
         private enum CodingKeys: String, CodingKey {
             case date
@@ -377,6 +418,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             case modelsUsed
             case models
             case modelBreakdowns
+            case edits
         }
 
         public init(from decoder: Decoder) throws {
@@ -399,6 +441,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
                 ?? container.decodeIfPresent(Double.self, forKey: .totalCost)
             self.modelsUsed = Self.decodeModelsUsed(from: container)
             self.modelBreakdowns = try container.decodeIfPresent([ModelBreakdown].self, forKey: .modelBreakdowns)
+            self.edits = try container.decodeIfPresent(CostUsageEditCounts.self, forKey: .edits)
         }
 
         public init(
@@ -411,7 +454,8 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             requestCount: Int? = nil,
             costUSD: Double?,
             modelsUsed: [String]?,
-            modelBreakdowns: [ModelBreakdown]?)
+            modelBreakdowns: [ModelBreakdown]?,
+            edits: CostUsageEditCounts? = nil)
         {
             self.date = date
             self.inputTokens = inputTokens
@@ -423,6 +467,7 @@ public struct CostUsageDailyReport: Sendable, Decodable {
             self.costUSD = costUSD
             self.modelsUsed = modelsUsed
             self.modelBreakdowns = modelBreakdowns
+            self.edits = edits
         }
 
         private static func decodeModelsUsed(from container: KeyedDecodingContainer<CodingKeys>) -> [String]? {
@@ -612,6 +657,7 @@ extension CostUsageDailyReport {
         var sawCost = false
         var modelsUsed: Set<String> = []
         var breakdowns: [String: BreakdownAccumulator] = [:]
+        var edits: CostUsageEditCounts?
 
         mutating func add(_ entry: Entry) {
             let entryDerivedTotalTokens = (entry.inputTokens ?? 0)
@@ -646,6 +692,9 @@ extension CostUsageDailyReport {
             }
             if let modelsUsed = entry.modelsUsed {
                 self.modelsUsed.formUnion(modelsUsed)
+            }
+            if let edits = entry.edits {
+                self.edits = (self.edits ?? .zero) + edits
             }
             if let modelBreakdowns = entry.modelBreakdowns {
                 for breakdown in modelBreakdowns {
@@ -687,7 +736,8 @@ extension CostUsageDailyReport {
                 totalTokens: totalTokens,
                 costUSD: self.sawCost ? self.costUSD : nil,
                 modelsUsed: modelsUsed,
-                modelBreakdowns: modelBreakdowns)
+                modelBreakdowns: modelBreakdowns,
+                edits: self.edits)
         }
     }
 
