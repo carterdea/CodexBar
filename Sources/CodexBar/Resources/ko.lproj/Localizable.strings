@@ -1379,6 +1379,8 @@
 
 "Cumulative" = "누적";
 "Token activity" = "토큰 활동";
+"tok" = "토큰";
+"no usage" = "사용 없음";
 "View" = "보기";
 "in the last year" = "지난 1년";
 "No activity in the last 12 months" = "지난 12개월 동안 활동 없음";

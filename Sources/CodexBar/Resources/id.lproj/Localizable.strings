@@ -1415,6 +1415,8 @@
 
 "Cumulative" = "Kumulatif";
 "Token activity" = "Aktivitas token";
+"tok" = "token";
+"no usage" = "tanpa penggunaan";
 "View" = "Tampilan";
 "in the last year" = "dalam setahun terakhir";
 "No activity in the last 12 months" = "Tidak ada aktivitas dalam 12 bulan terakhir";

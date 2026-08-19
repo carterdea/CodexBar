@@ -1415,6 +1415,8 @@
 
 "Cumulative" = "สะสม";
 "Token activity" = "กิจกรรมโทเทน";
+"tok" = "โทเค็น";
+"no usage" = "ไม่มีการใช้งาน";
 "View" = "มุมมอง";
 "in the last year" = "ในปีที่ผ่านมา";
 "No activity in the last 12 months" = "ไม่มีกิจกรรมในช่วง 12 เดือนที่ผ่านมา";

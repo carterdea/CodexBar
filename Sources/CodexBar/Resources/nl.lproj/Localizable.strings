@@ -1411,6 +1411,8 @@
 
 "Cumulative" = "Cumulatief";
 "Token activity" = "Token-activiteit";
+"tok" = "tok";
+"no usage" = "geen gebruik";
 "View" = "Weergave";
 "in the last year" = "in het afgelopen jaar";
 "No activity in the last 12 months" = "Geen activiteit in de afgelopen 12 maanden";

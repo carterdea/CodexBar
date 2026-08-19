@@ -1411,6 +1411,8 @@
 
 "Cumulative" = "Cumulé";
 "Token activity" = "Activité des tokens";
+"tok" = "jetons";
+"no usage" = "aucune utilisation";
 "View" = "Vue";
 "in the last year" = "sur l'année écoulée";
 "No activity in the last 12 months" = "Aucune activité au cours des 12 derniers mois";
