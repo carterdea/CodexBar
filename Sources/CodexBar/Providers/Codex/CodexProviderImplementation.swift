@@ -247,8 +247,6 @@ struct CodexProviderImplementation: ProviderImplementation {
 
     @MainActor
     func appendUsageMenuEntries(context: ProviderMenuUsageContext, entries: inout [ProviderMenuEntry]) {
-        self.appendAccountRecommendation(context: context, entries: &entries)
-
         guard context.settings.showOptionalCreditsAndExtraUsage,
               context.metadata.supportsCredits
         else { return }
@@ -278,30 +276,21 @@ struct CodexProviderImplementation: ProviderImplementation {
         }
     }
 
-    /// Codex's answer to claude-swap's account list is `UsageStore.codexAccountSnapshots`: one row per
-    /// visible account, each carrying that account's own usage. Only the stacked multi-account refresh
-    /// fills it; the segmented layout fetches the active account alone, leaving at most one row. So the
-    /// line goes quiet exactly when the app never learned what the other accounts have left, which is
-    /// the honest answer rather than a recommendation made from one account's numbers.
+    /// `UsageStore.codexAccountSnapshots` holds one row per visible account, each carrying that
+    /// account's own usage. Only the stacked multi-account refresh fills it; the segmented layout
+    /// fetches the active account alone, leaving at most one row. So the recommendation goes quiet
+    /// exactly when the app never learned what the other accounts have left, which is the honest
+    /// answer rather than a suggestion made from one account's numbers.
     ///
-    /// Projected through the same helper the compact account cards use, so the recommendation and the
-    /// cards cannot disagree about which account is active or which ones are unhealthy.
+    /// Projected through the same helper the account cards use, so the two cannot disagree about
+    /// which account is active or which ones are unhealthy.
     @MainActor
-    private func appendAccountRecommendation(
-        context: ProviderMenuUsageContext,
-        entries: inout [ProviderMenuEntry])
-    {
+    func rankableAccounts(context: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot] {
         // The rows are built from the visible-account projection, so each already carries that
         // projection's `isActive`. Reading the projection again here would load `auth.json` during
         // menu rendering, which must stay side-effect free.
         let rows = context.store.codexAccountSnapshots
-        let accounts = CodexAccountUsageProjection.project(accounts: rows.map(\.account), snapshots: rows)
-        if let recommendation = AccountRecommendation.line(
-            for: accounts,
-            hidePersonalInfo: context.settings.hidePersonalInfo)
-        {
-            entries.append(.text(recommendation, .primary))
-        }
+        return CodexAccountUsageProjection.project(accounts: rows.map(\.account), snapshots: rows)
     }
 
     @MainActor

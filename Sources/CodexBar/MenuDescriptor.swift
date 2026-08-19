@@ -361,8 +361,17 @@ struct MenuDescriptor {
             settings: settings,
             metadata: meta,
             snapshot: store.snapshot(for: provider.instanceID))
-        ProviderCatalog.implementation(for: provider)?
-            .appendUsageMenuEntries(context: usageContext, entries: &entries)
+        let implementation = ProviderCatalog.implementation(for: provider)
+        implementation?.appendUsageMenuEntries(context: usageContext, entries: &entries)
+        // Every provider showing more than one account answers the same question, so the line is
+        // built here instead of in each implementation.
+        if let accounts = implementation?.rankableAccounts(context: usageContext),
+           let recommendation = AccountRecommendation.line(
+               for: accounts,
+               hidePersonalInfo: settings.hidePersonalInfo)
+        {
+            entries.append(.text(recommendation, .primary))
+        }
 
         return Section(entries: entries)
     }

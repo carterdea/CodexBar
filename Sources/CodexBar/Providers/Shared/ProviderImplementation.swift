@@ -74,6 +74,12 @@ protocol ProviderImplementation: Sendable {
     @MainActor
     func appendUsageMenuEntries(context: ProviderMenuUsageContext, entries: inout [ProviderMenuEntry])
 
+    /// Accounts this provider can rank for a "use X next" recommendation, most-recently-known usage
+    /// attached. Providers that surface one account, or none with usage, return an empty list and the
+    /// recommendation stays hidden.
+    @MainActor
+    func rankableAccounts(context: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot]
+
     /// Optional provider-specific menu entries for the actions section.
     @MainActor
     func appendActionMenuEntries(context: ProviderMenuActionContext, entries: inout [ProviderMenuEntry])
@@ -175,6 +181,11 @@ extension ProviderImplementation {
 
     @MainActor
     func appendUsageMenuEntries(context _: ProviderMenuUsageContext, entries _: inout [ProviderMenuEntry]) {}
+
+    @MainActor
+    func rankableAccounts(context _: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot] {
+        []
+    }
 
     @MainActor
     func appendActionMenuEntries(context _: ProviderMenuActionContext, entries _: inout [ProviderMenuEntry]) {}

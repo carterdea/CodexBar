@@ -114,48 +114,43 @@ struct AccountRecommendationTests {
     // MARK: - Codex
 
     @Test
-    func `Codex accounts are ranked by headroom`() throws {
-        let entries = Self.codexUsageMenuEntries(rows: [
+    func `Codex accounts are ranked by headroom`() {
+        let line = Self.codexRecommendation(rows: [
             Self.codexRow("busy@example.com", percent: 80, isActive: true),
             Self.codexRow("spare@example.com", percent: 5),
         ])
 
-        guard case let .text(title, style) = try #require(entries.first) else {
-            Issue.record("Expected a Codex recommendation menu entry")
-            return
-        }
-        #expect(title.contains("spare@example.com"))
-        #expect(style == .primary)
+        #expect(line?.contains("spare@example.com") == true)
     }
 
     @Test
     func `says nothing when the active Codex account already has the most headroom`() {
-        let entries = Self.codexUsageMenuEntries(rows: [
+        let line = Self.codexRecommendation(rows: [
             Self.codexRow("spare@example.com", percent: 5, isActive: true),
             Self.codexRow("busy@example.com", percent: 80),
         ])
 
-        #expect(entries.isEmpty)
+        #expect(line == nil)
     }
 
     /// The segmented layout fetches only the active account, so the store holds at most one row and
     /// there is nothing to compare against.
     @Test
     func `says nothing when only one Codex account has usage`() {
-        let entries = Self.codexUsageMenuEntries(rows: [
+        let line = Self.codexRecommendation(rows: [
             Self.codexRow("solo@example.com", percent: 5, isActive: true),
         ])
 
-        #expect(entries.isEmpty)
+        #expect(line == nil)
     }
 
     /// Menu rendering must stay side-effect free: reading the visible-account projection here would
     /// load `auth.json`, parse JWTs, and hash fingerprints while the menu is being built. The rows
     /// already carry the projection's active flag, so the recommendation never needs to ask for it.
     @Test
-    func `building the Codex recommendation never loads codex auth state`() {
+    func `collecting Codex candidates never loads codex auth state`() {
         let loads = Counter()
-        let entries = Self.codexUsageMenuEntries(
+        let line = Self.codexRecommendation(
             rows: [
                 Self.codexRow("busy@example.com", percent: 80, isActive: true),
                 Self.codexRow("spare@example.com", percent: 5),
@@ -163,24 +158,52 @@ struct AccountRecommendationTests {
             onReconciliationLoad: { loads.increment() })
 
         #expect(loads.value == 0)
-        #expect(!entries.isEmpty)
+        #expect(line != nil)
     }
 
     /// Codex labels are emails, and this line sits directly above cards that redact theirs.
     @Test
-    func `redacts the recommended Codex account when personal info is hidden`() throws {
-        let entries = Self.codexUsageMenuEntries(
+    func `redacts the recommended Codex account when personal info is hidden`() {
+        let line = Self.codexRecommendation(
             rows: [
                 Self.codexRow("busy@example.com", percent: 80, isActive: true),
                 Self.codexRow("spare@example.com", percent: 5),
             ],
             hidePersonalInfo: true)
 
-        guard case let .text(title, _) = try #require(entries.first) else {
-            Issue.record("Expected a Codex recommendation menu entry")
-            return
+        #expect(line != nil)
+        #expect(line?.contains("spare@example.com") != true)
+    }
+
+    /// The menu builds the line for whichever provider offers candidates, so the Codex hook only has
+    /// to hand them over. This is the one test that walks the whole path.
+    @Test
+    func `the built menu shows the Codex recommendation`() {
+        let rows = [
+            Self.codexRow("busy@example.com", percent: 80, isActive: true),
+            Self.codexRow("spare@example.com", percent: 5),
+        ]
+        let (store, settings) = Self.codexStore(rows: rows)
+
+        let descriptor = MenuDescriptor.build(
+            provider: .codex,
+            store: store,
+            settings: settings,
+            account: AccountInfo(email: nil, plan: nil),
+            updateReady: false,
+            includeContextualActions: false)
+        let expected = AccountRecommendation.line(
+            for: CodexProviderImplementation().rankableAccounts(context: Self.codexContext(
+                store: store,
+                settings: settings,
+                rows: rows)))
+
+        let texts = descriptor.sections.flatMap(\.entries).compactMap { entry -> String? in
+            guard case let .text(text, _) = entry else { return nil }
+            return text
         }
-        #expect(!title.contains("spare@example.com"))
+        #expect(expected != nil)
+        #expect(texts.contains { $0 == expected })
     }
 
     // MARK: - Codex fixtures
@@ -215,13 +238,10 @@ struct AccountRecommendationTests {
             sourceLabel: "test")
     }
 
-    /// Drives the real provider hook rather than the projection alone, so the wiring itself is covered.
-    /// `onReconciliationLoad` fires if the hook asks the settings store to reconcile Codex accounts,
-    /// which menu rendering must never do.
-    private static func codexUsageMenuEntries(
+    private static func codexStore(
         rows: [CodexAccountUsageSnapshot],
         hidePersonalInfo: Bool = false,
-        onReconciliationLoad: (@Sendable () -> Void)? = nil) -> [ProviderMenuEntry]
+        onReconciliationLoad: (@Sendable () -> Void)? = nil) -> (UsageStore, SettingsStore)
     {
         let settings = testSettingsStore(suiteName: "AccountRecommendationTests-codex")
         settings.hidePersonalInfo = hidePersonalInfo
@@ -237,8 +257,6 @@ struct AccountRecommendationTests {
                     hasUnreadableAddedAccountStore: false)
             }
         }
-        // Credits are the rest of this hook; leaving them off proves the recommendation stands alone.
-        settings.showOptionalCreditsAndExtraUsage = false
         let store = UsageStore(
             fetcher: UsageFetcher(environment: [:]),
             browserDetection: BrowserDetection(cacheTTL: 0),
@@ -246,17 +264,37 @@ struct AccountRecommendationTests {
             startupBehavior: .testing,
             environmentBase: [:])
         store.codexAccountSnapshots = rows
+        return (store, settings)
+    }
 
-        var entries: [ProviderMenuEntry] = []
-        CodexProviderImplementation().appendUsageMenuEntries(
-            context: ProviderMenuUsageContext(
-                provider: .codex,
-                store: store,
-                settings: settings,
-                metadata: ProviderDescriptorRegistry.descriptor(for: .codex).metadata,
-                snapshot: rows.first?.snapshot),
-            entries: &entries)
-        return entries
+    private static func codexContext(
+        store: UsageStore,
+        settings: SettingsStore,
+        rows: [CodexAccountUsageSnapshot]) -> ProviderMenuUsageContext
+    {
+        ProviderMenuUsageContext(
+            provider: .codex,
+            store: store,
+            settings: settings,
+            metadata: ProviderDescriptorRegistry.descriptor(for: .codex).metadata,
+            snapshot: rows.first?.snapshot)
+    }
+
+    /// Mirrors what the menu does with a provider's candidates, driving the real Codex hook so the
+    /// projection it hands over is the thing under test. `onReconciliationLoad` fires if that hook
+    /// asks the settings store to reconcile accounts, which menu rendering must never do.
+    private static func codexRecommendation(
+        rows: [CodexAccountUsageSnapshot],
+        hidePersonalInfo: Bool = false,
+        onReconciliationLoad: (@Sendable () -> Void)? = nil) -> String?
+    {
+        let (store, settings) = self.codexStore(
+            rows: rows,
+            hidePersonalInfo: hidePersonalInfo,
+            onReconciliationLoad: onReconciliationLoad)
+        let accounts = CodexProviderImplementation().rankableAccounts(
+            context: self.codexContext(store: store, settings: settings, rows: rows))
+        return AccountRecommendation.line(for: accounts, hidePersonalInfo: hidePersonalInfo)
     }
 }
 
