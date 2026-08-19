@@ -108,21 +108,11 @@ final class AutoPrewarmCoordinator {
     }
 
     private func recordSamples(_ accounts: [TokenAccountUsageSnapshot], now: Date) {
-        let horizon = now.addingTimeInterval(-2 * AutoPrewarmDecision.activityWindow)
         var live: [String: [PrewarmSample]] = [:]
-
         for entry in accounts {
             let key = Self.key(for: entry.account)
-            var series = (self.samples[key] ?? []).filter { $0.at >= horizon }
-            if let snapshot = entry.snapshot {
-                let lanes = Self.lanes(in: snapshot)
-                // A refresh that produced no readable lane is not an observation of zero usage, and
-                // recording it as one would read as a fall and then as a rise on the next tick.
-                if !lanes.isEmpty {
-                    series.append(PrewarmSample(at: now, percentByLane: lanes))
-                }
-            }
-            live[key] = series
+            let sample = entry.snapshot.map { PrewarmSample(at: now, percentByLane: $0.prewarmLanes) }
+            live[key] = PrewarmSampleRing.appending(sample, to: self.samples[key] ?? [], now: now)
         }
 
         // Accounts the user removed drop out entirely rather than keeping a series nothing will
@@ -139,39 +129,10 @@ final class AutoPrewarmCoordinator {
             return PrewarmAccount(
                 key: key,
                 windows: snapshot.rankableWindows,
-                sessionWindow: Self.sessionWindow(in: snapshot),
+                sessionWindow: snapshot.prewarmSessionWindow,
                 samples: self.samples[key] ?? [],
                 lastPrewarmedAt: self.store.lastPrewarmedAt(for: key))
         }
-    }
-
-    /// The 5-hour lane, or `nil` when the provider reported none.
-    ///
-    /// A synthetic placeholder is Claude's stand-in for a null `five_hour`, i.e. an account with no
-    /// session lane at all. It must not arrive at the decision as a real window with no reset
-    /// instant, or every never-used account would look permanently ready to prewarm.
-    private static func sessionWindow(in snapshot: UsageSnapshot) -> RateWindow? {
-        guard let primary = snapshot.primary, !primary.isSyntheticPlaceholder else { return nil }
-        return primary
-    }
-
-    /// Used-percent per quota lane, keyed so the same lane lines up between two refreshes.
-    ///
-    /// The positional lanes are keyed by position and named ones by their own id, which is what
-    /// makes a model-scoped quota comparable to itself rather than to whatever sorted next to it.
-    private static func lanes(in snapshot: UsageSnapshot) -> [String: Double] {
-        var lanes: [String: Double] = [:]
-        func add(_ name: String, _ window: RateWindow?) {
-            guard let window, !window.isSyntheticPlaceholder, window.usedPercent.isFinite else { return }
-            lanes[name] = window.usedPercent
-        }
-        add("primary", snapshot.primary)
-        add("secondary", snapshot.secondary)
-        add("tertiary", snapshot.tertiary)
-        for named in snapshot.extraRateWindows ?? [] where named.usageKnown {
-            add("named:\(named.id)", named.window)
-        }
-        return lanes
     }
 
     /// The account's own stable id, which is persisted with the token account and survives
