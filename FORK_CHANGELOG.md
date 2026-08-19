@@ -74,6 +74,20 @@ untouched clone of `steipete/CodexBar` at `45ca0b4` with no fork changes present
   data-only repopulate grows the row count by 2. Upstream fails 16 → 18; this fork fails 17 → 19,
   the same +2 defect offset by the one row the Codex kick adds.
 
+`AdaptiveRefreshTimerTests` fails **two** tests the same way on upstream itself, verified by
+checking this worktree out at `de63f0ce3` with no fork changes present and running the suite alone:
+
+- "menu open advances a long idle timer during refresh without postponing an earlier tick"
+- "coding activity advances a long idle timer without postponing an earlier tick"
+
+Both end in `CancellationError()` from the suite's own 30-second `waitUntil` helper. They are the
+two tests that wait for the adaptive timer to be *re-scheduled earlier* after a live signal. Not
+thermal throttling or Low Power Mode, which was the obvious guess: `AdaptiveRefreshPolicyCore`
+collapses `.constrained` and `.longIdle` to the same 30-minute delay, so a constrained machine
+would produce exactly this hang — but the machine measured `thermalState: nominal` and
+`lowPowerMode: false` while reproducing it. Root cause is still open. It blocks `make test`
+outright, because the sharded runner stops after a failed group retry.
+
 Separately, `CostUsageFetcherUnknownModelPricingTests` **passes but takes ~106s for six tests**
 against the sharded runner's 180s per-group limit, so `make test` fails with exit 124 whenever the
 machine is otherwise busy. Nothing is wrong with the code under test; the margin is just thin.
