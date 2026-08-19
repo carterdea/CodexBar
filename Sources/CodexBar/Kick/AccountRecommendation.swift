@@ -50,7 +50,7 @@ enum AccountRecommendation {
 
         // Only recommend an account that is actually usable. When everything is blocked or
         // unreadable the top row is merely the least bad, and saying "use this" would be wrong.
-        guard let percent = AccountRanking.bindingUsedPercent(best.rankingWindows),
+        guard let percent = AccountRanking.bindingUsedPercent(best.rankingWindows, now: now),
               percent < AccountRanking.blockedPercent
         else { return nil }
 

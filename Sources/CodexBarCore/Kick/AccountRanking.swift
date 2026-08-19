@@ -29,9 +29,9 @@ public enum AccountRanking {
     /// window blocks everything for the next few hours.
     ///
     /// `nil` means no usable number at all, which is not the same as 0%.
-    public static func bindingUsedPercent(_ windows: [RateWindow]) -> Double? {
+    public static func bindingUsedPercent(_ windows: [RateWindow], now: Date) -> Double? {
         var binding: Double?
-        for window in self.countableWindows(windows) {
+        for window in self.countableWindows(windows, now: now) {
             if binding == nil || window.usedPercent > (binding ?? 0) {
                 binding = window.usedPercent
             }
@@ -52,7 +52,7 @@ public enum AccountRanking {
     /// the safe direction to be wrong in.
     public static func unblocksAt(_ windows: [RateWindow], now: Date) -> Date? {
         var latest: Date?
-        for window in self.countableWindows(windows) where window.usedPercent >= self.blockedPercent {
+        for window in self.countableWindows(windows, now: now) where window.usedPercent >= self.blockedPercent {
             guard let reset = window.resetsAt, reset > now else { continue }
             if latest == nil || reset > (latest ?? reset) { latest = reset }
         }
@@ -77,14 +77,14 @@ public enum AccountRanking {
     /// they cannot spend anything in.
     public static func rank<T: RankableAccount>(_ accounts: [T], now: Date) -> [T] {
         accounts.enumerated().sorted { lhs, rhs in
-            let leftBand = self.band(lhs.element)
-            let rightBand = self.band(rhs.element)
+            let leftBand = self.band(lhs.element, now: now)
+            let rightBand = self.band(rhs.element, now: now)
             if leftBand != rightBand { return leftBand < rightBand }
 
             switch leftBand {
             case 0:
-                let left = self.bindingUsedPercent(lhs.element.rankingWindows) ?? 0
-                let right = self.bindingUsedPercent(rhs.element.rankingWindows) ?? 0
+                let left = self.bindingUsedPercent(lhs.element.rankingWindows, now: now) ?? 0
+                let right = self.bindingUsedPercent(rhs.element.rankingWindows, now: now) ?? 0
                 if left != right { return left < right }
             case 1:
                 let left = self.unblocksAt(lhs.element.rankingWindows, now: now)
@@ -111,13 +111,24 @@ public enum AccountRanking {
     /// A synthetic placeholder is a provider standing in for a lane it did not actually report.
     /// Counting one would read as a real 0%-used window, which is the emptiest thing on the board —
     /// so an account that reported nothing would lead it.
-    private static func countableWindows(_ windows: [RateWindow]) -> [RateWindow] {
-        windows.filter { !$0.isSyntheticPlaceholder && $0.usedPercent.isFinite }
+    ///
+    /// A window whose reset has already passed is dropped for the same reason it is not counted
+    /// twice: it describes a window that no longer exists. Snapshots cached to disk are reloaded at
+    /// launch without any age check, so after the app sits closed across a reset these are the only
+    /// numbers on hand — and a pre-reset 95% would otherwise send the user to a different account
+    /// when the one they are in has been empty since the turnover. Windows that name no reset are
+    /// kept, since nothing proves them stale.
+    private static func countableWindows(_ windows: [RateWindow], now: Date) -> [RateWindow] {
+        windows.filter { window in
+            guard !window.isSyntheticPlaceholder, window.usedPercent.isFinite else { return false }
+            guard let resetsAt = window.resetsAt else { return true }
+            return resetsAt > now
+        }
     }
 
-    private static func band(_ account: some RankableAccount) -> Int {
+    private static func band(_ account: some RankableAccount, now: Date) -> Int {
         if account.rankingNeedsReauth { return 2 }
-        guard let binding = self.bindingUsedPercent(account.rankingWindows) else { return 2 }
+        guard let binding = self.bindingUsedPercent(account.rankingWindows, now: now) else { return 2 }
         return binding >= self.blockedPercent ? 1 : 0
     }
 }

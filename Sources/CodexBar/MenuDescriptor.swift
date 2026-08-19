@@ -103,7 +103,7 @@ struct MenuDescriptor {
 
         if let provider {
             let fallbackAccount = store.accountInfo(for: provider)
-            sections.append(Self.usageSection(for: provider, store: store, settings: settings))
+            sections.append(Self.usageSection(for: provider, store: store, settings: settings, now: now))
             if let accountSection = Self.accountSection(
                 for: provider,
                 store: store,
@@ -116,7 +116,11 @@ struct MenuDescriptor {
             var addedUsage = false
 
             for enabledProvider in store.enabledFirstPartyProviders() {
-                sections.append(Self.usageSection(for: enabledProvider, store: store, settings: settings))
+                sections.append(Self.usageSection(
+                    for: enabledProvider,
+                    store: store,
+                    settings: settings,
+                    now: now))
                 addedUsage = true
             }
             if addedUsage {
@@ -225,7 +229,8 @@ struct MenuDescriptor {
     private static func usageSection(
         for provider: UsageProvider,
         store: UsageStore,
-        settings: SettingsStore) -> Section
+        settings: SettingsStore,
+        now: Date) -> Section
     {
         let meta = store.metadata(for: provider)
         var entries: [Entry] = []
@@ -368,7 +373,8 @@ struct MenuDescriptor {
         if let accounts = implementation?.rankableAccounts(context: usageContext),
            let recommendation = AccountRecommendation.line(
                for: accounts,
-               hidePersonalInfo: settings.hidePersonalInfo)
+               hidePersonalInfo: settings.hidePersonalInfo,
+               now: now)
         {
             entries.append(.text(recommendation, .primary))
         }

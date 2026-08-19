@@ -191,12 +191,14 @@ struct AccountRecommendationTests {
             settings: settings,
             account: AccountInfo(email: nil, plan: nil),
             updateReady: false,
-            includeContextualActions: false)
+            includeContextualActions: false,
+            now: Self.now)
         let expected = AccountRecommendation.line(
             for: CodexProviderImplementation().rankableAccounts(context: Self.codexContext(
                 store: store,
                 settings: settings,
-                rows: rows)))
+                rows: rows)),
+            now: Self.now)
 
         let texts = descriptor.sections.flatMap(\.entries).compactMap { entry -> String? in
             guard case let .text(text, _) = entry else { return nil }
@@ -294,7 +296,7 @@ struct AccountRecommendationTests {
             onReconciliationLoad: onReconciliationLoad)
         let accounts = CodexProviderImplementation().rankableAccounts(
             context: self.codexContext(store: store, settings: settings, rows: rows))
-        return AccountRecommendation.line(for: accounts, hidePersonalInfo: hidePersonalInfo)
+        return AccountRecommendation.line(for: accounts, hidePersonalInfo: hidePersonalInfo, now: self.now)
     }
 }
 
