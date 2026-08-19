@@ -949,12 +949,6 @@ struct ProviderArchitectureGatekeeperTests {
             expectedProviderIDs: ["codex"],
             reason: "This provider-specific app branch passes its already-selected identity to a shared helper."),
         SuppressedProviderReference(
-            path: "Sources/CodexBar/StatusItemController+CompactAccountMenu.swift",
-            line: 264,
-            anchor: "provider: .codex,",
-            expectedProviderIDs: ["codex"],
-            reason: "This provider-specific app branch passes its already-selected identity to a shared helper."),
-        SuppressedProviderReference(
             path: "Sources/CodexBar/StatusItemController+MemoryPressure.swift",
             line: 45,
             anchor: ".provider(.codex): cacheEntry,",

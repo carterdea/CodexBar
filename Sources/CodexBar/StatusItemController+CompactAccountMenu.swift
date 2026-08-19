@@ -68,7 +68,7 @@ extension StatusItemController {
         context: MenuCardContext) -> Bool
     {
         guard !display.showsWorkspaceGroups else { return false }
-        let projected = Self.projectedCodexAccounts(display: display)
+        let projected = display.projectedAccounts
         let plan = self.compactAccountPlan(for: .codex, accounts: projected)
         guard plan.usesCompactLayout else { return false }
         let snapshotsByAccountID = Dictionary(
@@ -250,24 +250,6 @@ extension StatusItemController {
                 snapshot: accountSnapshot.snapshot,
                 error: accountSnapshot.error,
                 sourceLabel: accountSnapshot.sourceLabel)
-        }
-    }
-
-    static func projectedCodexAccounts(display: CodexAccountMenuDisplay) -> [ProviderAccountUsageSnapshot] {
-        let snapshotsByAccountID = Dictionary(uniqueKeysWithValues: display.snapshots.map { ($0.account.id, $0) })
-        return display.accounts.map { account in
-            let accountSnapshot = snapshotsByAccountID[account.id]
-            let health = CodexAccountHealth.status(for: account, error: accountSnapshot?.error)
-            let isActive = account.id == display.activeVisibleAccountID || account.isActive
-            return ProviderAccountUsageSnapshot(
-                id: ProviderAccountIdentity(source: "codex-account", opaqueID: account.id),
-                provider: .codex,
-                displayLabel: account.menuDisplayName,
-                isActive: isActive,
-                canActivate: !isActive,
-                snapshot: accountSnapshot?.snapshot,
-                error: health.label,
-                sourceLabel: accountSnapshot?.sourceLabel)
         }
     }
 
