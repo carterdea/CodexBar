@@ -103,7 +103,7 @@ struct MenuDescriptor {
 
         if let provider {
             let fallbackAccount = store.accountInfo(for: provider)
-            sections.append(Self.usageSection(for: provider, store: store, settings: settings))
+            sections.append(Self.usageSection(for: provider, store: store, settings: settings, now: now))
             if let accountSection = Self.accountSection(
                 for: provider,
                 store: store,
@@ -116,7 +116,11 @@ struct MenuDescriptor {
             var addedUsage = false
 
             for enabledProvider in store.enabledFirstPartyProviders() {
-                sections.append(Self.usageSection(for: enabledProvider, store: store, settings: settings))
+                sections.append(Self.usageSection(
+                    for: enabledProvider,
+                    store: store,
+                    settings: settings,
+                    now: now))
                 addedUsage = true
             }
             if addedUsage {
@@ -225,7 +229,8 @@ struct MenuDescriptor {
     private static func usageSection(
         for provider: UsageProvider,
         store: UsageStore,
-        settings: SettingsStore) -> Section
+        settings: SettingsStore,
+        now: Date) -> Section
     {
         let meta = store.metadata(for: provider)
         var entries: [Entry] = []
@@ -361,8 +366,18 @@ struct MenuDescriptor {
             settings: settings,
             metadata: meta,
             snapshot: store.snapshot(for: provider.instanceID))
-        ProviderCatalog.implementation(for: provider)?
-            .appendUsageMenuEntries(context: usageContext, entries: &entries)
+        let implementation = ProviderCatalog.implementation(for: provider)
+        implementation?.appendUsageMenuEntries(context: usageContext, entries: &entries)
+        // Every provider showing more than one account answers the same question, so the line is
+        // built here instead of in each implementation.
+        if let accounts = implementation?.rankableAccounts(context: usageContext),
+           let recommendation = AccountRecommendation.line(
+               for: accounts,
+               hidePersonalInfo: settings.hidePersonalInfo,
+               now: now)
+        {
+            entries.append(.text(recommendation, .primary))
+        }
 
         return Section(entries: entries)
     }

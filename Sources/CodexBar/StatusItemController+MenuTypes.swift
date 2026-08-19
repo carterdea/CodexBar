@@ -155,6 +155,13 @@ struct CodexAccountMenuDisplay: Equatable {
     let activeVisibleAccountID: String?
     let layout: MultiAccountMenuLayout
 
+    var projectedAccounts: [ProviderAccountUsageSnapshot] {
+        CodexAccountUsageProjection.project(
+            accounts: self.accounts,
+            snapshots: self.snapshots,
+            activeVisibleAccountID: self.activeVisibleAccountID)
+    }
+
     var showAll: Bool {
         self.layout == .stacked
     }

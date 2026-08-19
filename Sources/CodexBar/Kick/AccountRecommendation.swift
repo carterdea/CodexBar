@@ -50,7 +50,18 @@ enum AccountRecommendation {
 
         // Only recommend an account that is actually usable. When everything is blocked or
         // unreadable the top row is merely the least bad, and saying "use this" would be wrong.
-        guard let percent = AccountRanking.bindingUsedPercent(best.rankingWindows),
+        // An account whose windows have all expired reports nothing countable, which ranks it as
+        // unknown and puts it behind every account that still has numbers. When that account is the
+        // one in use, "switch" is the wrong default: its windows lapsing is what a reset looks like
+        // from cached data, so it may well be the emptiest one there is. A dead login is different --
+        // no percentage makes it spendable -- so that stays worth calling out.
+        if let active = accounts.first(where: \.isActive),
+           !active.rankingNeedsReauth,
+           AccountRanking.bindingUsedPercent(active.rankingWindows, now: now) == nil
+        {
+            return nil
+        }
+        guard let percent = AccountRanking.bindingUsedPercent(best.rankingWindows, now: now),
               percent < AccountRanking.blockedPercent
         else { return nil }
 

@@ -276,6 +276,29 @@ struct CodexProviderImplementation: ProviderImplementation {
         }
     }
 
+    /// `UsageStore.codexAccountSnapshots` holds one row per visible account, each carrying that
+    /// account's own usage. Only the stacked multi-account refresh fills it; the segmented layout
+    /// fetches the active account alone, leaving at most one row. So the recommendation goes quiet
+    /// exactly when the app never learned what the other accounts have left, which is the honest
+    /// answer rather than a suggestion made from one account's numbers.
+    ///
+    /// Projected through the same helper the account cards use, so the two cannot disagree about
+    /// which account is active or which ones are unhealthy.
+    @MainActor
+    func rankableAccounts(context: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot] {
+        // Switching accounts writes the new selection to `codexActiveSource` and leaves these rows in
+        // place until the refresh lands, so their own `isActive` still names the account just left.
+        // The stored source is already current and costs nothing to read, unlike the visible-account
+        // projection, which would load `auth.json` during menu rendering.
+        let rows = context.store.codexAccountSnapshots
+        let activeSource = context.settings.codexActiveSource
+        return CodexAccountUsageProjection.project(
+            accounts: rows.map(\.account),
+            snapshots: rows,
+            // No matching row means the selection is not among them; the row flags stay the fallback.
+            activeVisibleAccountID: rows.first { $0.account.selectionSource == activeSource }?.id)
+    }
+
     @MainActor
     func loginMenuAction(context _: ProviderMenuLoginContext)
         -> (label: String, action: MenuDescriptor.MenuAction)?

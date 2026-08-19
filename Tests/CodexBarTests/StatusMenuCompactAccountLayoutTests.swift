@@ -146,7 +146,7 @@ final class StatusMenuCompactAccountLayoutTests: XCTestCase {
             activeVisibleAccountID: "account-2",
             layout: .stacked)
 
-        let projected = StatusItemController.projectedCodexAccounts(display: display)
+        let projected = display.projectedAccounts
 
         XCTAssertEqual(projected.map(\ProviderAccountUsageSnapshot.id.opaqueID), [
             "account-1", "account-2", "account-3", "account-4",

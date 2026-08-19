@@ -319,19 +319,17 @@ struct ClaudeProviderImplementation: ProviderImplementation {
         await context.controller.runClaudeLoginFlow()
     }
 
+    /// Only claude-swap exposes several Claude accounts with usage attached, so it is the one source
+    /// with a choice to recommend between.
+    @MainActor
+    func rankableAccounts(context: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot] {
+        context.store.claudeSwapAccountSnapshots
+    }
+
     @MainActor
     func appendUsageMenuEntries(context: ProviderMenuUsageContext, entries: inout [ProviderMenuEntry]) {
         if context.snapshot?.secondary == nil {
             entries.append(.text(L("Weekly usage unavailable for this account."), .secondary))
-        }
-
-        // Only claude-swap exposes several Claude accounts with usage attached, so this is the one
-        // place there is a choice to recommend between.
-        if let recommendation = AccountRecommendation.line(
-            for: context.store.claudeSwapAccountSnapshots,
-            hidePersonalInfo: context.settings.hidePersonalInfo)
-        {
-            entries.append(.text(recommendation, .primary))
         }
 
         if let cost = context.snapshot?.providerCost,

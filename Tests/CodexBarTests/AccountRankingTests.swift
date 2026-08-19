@@ -46,25 +46,40 @@ struct AccountRankingTests {
     func `binding percent is the highest across every window not just the weekly ones`() {
         // The account the old order put first: a 74% week hiding a 100% Fable week.
         let windows = [Self.window(22), Self.window(74), Self.window(100)]
-        #expect(AccountRanking.bindingUsedPercent(windows) == 100)
+        #expect(AccountRanking.bindingUsedPercent(windows, now: Self.now) == 100)
     }
 
     @Test
     func `a full session window binds just as hard as a full week`() {
-        #expect(AccountRanking.bindingUsedPercent([Self.window(100), Self.window(3)]) == 100)
+        #expect(AccountRanking.bindingUsedPercent([Self.window(100), Self.window(3)], now: Self.now) == 100)
     }
 
     @Test
     func `no windows at all is nil which is not the same as zero percent`() {
-        #expect(AccountRanking.bindingUsedPercent([]) == nil)
+        #expect(AccountRanking.bindingUsedPercent([], now: Self.now) == nil)
     }
 
     /// A placeholder stands in for a lane the provider never reported. Counting it as a real 0%
     /// would make an account that reported nothing look like the emptiest one on the board.
     @Test
     func `a placeholder window is not a real zero percent window`() {
-        #expect(AccountRanking.bindingUsedPercent([Self.window(0, placeholder: true)]) == nil)
-        #expect(AccountRanking.bindingUsedPercent([Self.window(0, placeholder: true), Self.window(12)]) == 12)
+        #expect(AccountRanking.bindingUsedPercent([Self.window(0, placeholder: true)], now: Self.now) == nil)
+        #expect(AccountRanking.bindingUsedPercent(
+            [Self.window(0, placeholder: true), Self.window(12)],
+            now: Self.now) == 12)
+    }
+
+    /// Snapshots cached to disk are reloaded at launch with no age check, so after the app sits
+    /// closed across a reset these stale numbers are all there is to rank on.
+    @Test
+    func `a window whose reset has already passed no longer counts`() {
+        #expect(AccountRanking.bindingUsedPercent([Self.window(95, resetsIn: -60)], now: Self.now) == nil)
+    }
+
+    @Test
+    func `an expired window does not bind over a live one`() {
+        let windows = [Self.window(95, resetsIn: -60), Self.window(12, resetsIn: 3600)]
+        #expect(AccountRanking.bindingUsedPercent(windows, now: Self.now) == 12)
     }
 
     // MARK: - Unblocks at

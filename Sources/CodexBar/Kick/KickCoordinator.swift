@@ -91,10 +91,10 @@ final class KickCoordinator {
                 // is passed through instead.
                 return .failed(message: error.localizedDescription)
             }
+        // Provider-specific by design: `codex exec` takes its login from $CODEX_HOME and has no flag
+        // to pick an account, so the kick has to land in the home of whichever account is currently
+        // active or it silently starts a window on the wrong one.
         case .codex:
-            // `codex exec` takes its login from $CODEX_HOME and has no flag to pick an account, so
-            // the kick has to land in the home of whichever account is currently active or it
-            // silently starts a window on the wrong one.
             return await CodexKickRunner.kick(codexHome: self.activeCodexHome(settings: settings))
         default:
             return .unsupported(reason: L("Starting a session window is not supported for this provider."))
