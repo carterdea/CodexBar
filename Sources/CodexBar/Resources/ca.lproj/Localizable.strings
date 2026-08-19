@@ -1324,6 +1324,9 @@
 "Coverage" = "Cobertura";
 "Estimated spend" = "Despesa estimada";
 "Tracked tokens" = "Tokens registrats";
+"Code written" = "Codi escrit";
+"Lines changed" = "Línies canviades";
+"Files created" = "Fitxers creats";
 "Subscriptions" = "Subscripcions";
 "By subscription" = "Per subscripció";
 "No model-level history" = "Sense historial per model";

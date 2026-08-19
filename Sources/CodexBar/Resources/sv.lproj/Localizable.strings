@@ -1320,6 +1320,9 @@
 "Coverage" = "Täckning";
 "Estimated spend" = "Uppskattade utgifter";
 "Tracked tokens" = "Spårade token";
+"Code written" = "Skriven kod";
+"Lines changed" = "Ändrade rader";
+"Files created" = "Skapade filer";
 "Subscriptions" = "Abonnemang";
 "By subscription" = "Per abonnemang";
 "No model-level history" = "Ingen historik på modellnivå";

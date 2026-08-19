@@ -1325,6 +1325,9 @@
 "Coverage" = "ความครอบคลุม";
 "Estimated spend" = "ค่าใช้จ่ายโดยประมาณ";
 "Tracked tokens" = "โทเค็นที่ติดตาม";
+"Code written" = "โค้ดที่เขียน";
+"Lines changed" = "บรรทัดที่เปลี่ยน";
+"Files created" = "ไฟล์ที่สร้าง";
 "Subscriptions" = "การสมัครสมาชิก";
 "By subscription" = "แยกตามการสมัครสมาชิก";
 "No model-level history" = "ไม่มีประวัติระดับโมเดล";

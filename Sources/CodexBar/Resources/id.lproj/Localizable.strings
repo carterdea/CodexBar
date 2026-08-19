@@ -1325,6 +1325,9 @@
 "Coverage" = "Cakupan";
 "Estimated spend" = "Perkiraan pengeluaran";
 "Tracked tokens" = "Token yang dilacak";
+"Code written" = "Kode ditulis";
+"Lines changed" = "Baris berubah";
+"Files created" = "Berkas dibuat";
 "Subscriptions" = "Langganan";
 "By subscription" = "Berdasarkan langganan";
 "No model-level history" = "Tidak ada riwayat tingkat model";

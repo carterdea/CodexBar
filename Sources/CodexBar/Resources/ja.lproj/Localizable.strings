@@ -1322,6 +1322,9 @@
 "Coverage" = "対象範囲";
 "Estimated spend" = "推定支出";
 "Tracked tokens" = "追跡対象トークン";
+"Code written" = "書いたコード";
+"Lines changed" = "変更行数";
+"Files created" = "作成ファイル数";
 "Subscriptions" = "サブスクリプション";
 "By subscription" = "サブスクリプション別";
 "No model-level history" = "モデル別の履歴はありません";

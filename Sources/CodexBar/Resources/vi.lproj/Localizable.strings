@@ -1322,6 +1322,9 @@
 "Coverage" = "Phạm vi";
 "Estimated spend" = "Chi tiêu ước tính";
 "Tracked tokens" = "Token được theo dõi";
+"Code written" = "Mã đã viết";
+"Lines changed" = "Dòng đã đổi";
+"Files created" = "Tệp đã tạo";
 "Subscriptions" = "Gói đăng ký";
 "By subscription" = "Theo gói đăng ký";
 "No model-level history" = "Không có lịch sử theo mô hình";

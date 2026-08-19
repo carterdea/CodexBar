@@ -1325,6 +1325,9 @@
 "Coverage" = "التغطية";
 "Estimated spend" = "الإنفاق التقديري";
 "Tracked tokens" = "الرموز المتتبعة";
+"Code written" = "الشيفرة المكتوبة";
+"Lines changed" = "الأسطر المتغيّرة";
+"Files created" = "الملفات المنشأة";
 "Subscriptions" = "الاشتراكات";
 "By subscription" = "حسب الاشتراك";
 "No model-level history" = "لا يوجد سجل على مستوى النموذج";

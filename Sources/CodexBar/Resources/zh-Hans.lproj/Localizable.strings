@@ -1300,6 +1300,9 @@
 "Coverage" = "覆盖范围";
 "Estimated spend" = "估算支出";
 "Tracked tokens" = "已跟踪 token";
+"Code written" = "已写代码";
+"Lines changed" = "变更行数";
+"Files created" = "创建文件数";
 "Subscriptions" = "订阅";
 "By subscription" = "按订阅";
 "No model-level history" = "暂无模型级历史";

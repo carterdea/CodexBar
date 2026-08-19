@@ -1323,6 +1323,9 @@
 "Coverage" = "Kapsam";
 "Estimated spend" = "Tahmini harcama";
 "Tracked tokens" = "İzlenen tokenlar";
+"Code written" = "Yazılan kod";
+"Lines changed" = "Değişen satırlar";
+"Files created" = "Oluşturulan dosyalar";
 "Subscriptions" = "Abonelikler";
 "By subscription" = "Aboneliğe göre";
 "No model-level history" = "Model düzeyinde geçmiş yok";

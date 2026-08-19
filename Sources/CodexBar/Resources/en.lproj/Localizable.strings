@@ -1305,6 +1305,9 @@
 "Coverage" = "Coverage";
 "Estimated spend" = "Estimated spend";
 "Tracked tokens" = "Tracked tokens";
+"Code written" = "Code written";
+"Lines changed" = "Lines changed";
+"Files created" = "Files created";
 "Subscriptions" = "Subscriptions";
 "By subscription" = "By subscription";
 "No model-level history" = "No model-level history";
