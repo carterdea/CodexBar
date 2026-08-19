@@ -286,11 +286,17 @@ struct CodexProviderImplementation: ProviderImplementation {
     /// which account is active or which ones are unhealthy.
     @MainActor
     func rankableAccounts(context: ProviderMenuUsageContext) -> [ProviderAccountUsageSnapshot] {
-        // The rows are built from the visible-account projection, so each already carries that
-        // projection's `isActive`. Reading the projection again here would load `auth.json` during
-        // menu rendering, which must stay side-effect free.
+        // Switching accounts writes the new selection to `codexActiveSource` and leaves these rows in
+        // place until the refresh lands, so their own `isActive` still names the account just left.
+        // The stored source is already current and costs nothing to read, unlike the visible-account
+        // projection, which would load `auth.json` during menu rendering.
         let rows = context.store.codexAccountSnapshots
-        return CodexAccountUsageProjection.project(accounts: rows.map(\.account), snapshots: rows)
+        let activeSource = context.settings.codexActiveSource
+        return CodexAccountUsageProjection.project(
+            accounts: rows.map(\.account),
+            snapshots: rows,
+            // No matching row means the selection is not among them; the row flags stay the fallback.
+            activeVisibleAccountID: rows.first { $0.account.selectionSource == activeSource }?.id)
     }
 
     @MainActor

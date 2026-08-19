@@ -18,7 +18,14 @@ enum CodexAccountUsageProjection {
         return accounts.map { account in
             let accountSnapshot = snapshotsByAccountID[account.id]
             let health = CodexAccountHealth.status(for: account, error: accountSnapshot?.error)
-            let isActive = account.id == activeVisibleAccountID || account.isActive
+            // A caller that knows which account is active gets the final say: a row's own flag can be
+            // a refresh behind after a switch, and two rows both claiming to be active is not a state
+            // worth representing. Callers that do not know pass nil and the row flags stand.
+            let isActive = if let activeVisibleAccountID {
+                account.id == activeVisibleAccountID
+            } else {
+                account.isActive
+            }
             return ProviderAccountUsageSnapshot(
                 id: ProviderAccountIdentity(source: "codex-account", opaqueID: account.id),
                 provider: .codex,

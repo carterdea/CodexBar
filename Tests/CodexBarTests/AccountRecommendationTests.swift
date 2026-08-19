@@ -111,6 +111,20 @@ struct AccountRecommendationTests {
         #expect(line?.contains("broken") != true)
     }
 
+    /// The silence rule for an active account with nothing countable must not swallow this: a login
+    /// that cannot be spent in at any percentage is exactly when switching is the right advice.
+    @Test
+    func `still recommends when the active account needs re-auth`() {
+        let line = AccountRecommendation.line(
+            for: [
+                self.account("dead@example.com", percent: nil, isActive: true, error: "Needs re-auth"),
+                self.account("live@example.com", percent: 20),
+            ],
+            now: Self.now)
+
+        #expect(line?.contains("live@example.com") == true)
+    }
+
     // MARK: - Codex
 
     @Test
@@ -208,19 +222,52 @@ struct AccountRecommendationTests {
         #expect(texts.contains { $0 == expected })
     }
 
+    /// A switch writes the new selection immediately but leaves the fetched rows alone until the
+    /// refresh lands, so the row flags still name the account the user just left.
+    @Test
+    func `follows the stored selection when the rows have not caught up`() {
+        let managed = UUID()
+        let line = Self.codexRecommendation(
+            rows: [
+                Self.codexRow("spare@example.com", percent: 5, isActive: true),
+                Self.codexRow(
+                    "busy@example.com",
+                    percent: 80,
+                    selectionSource: .managedAccount(id: managed)),
+            ],
+            activeSource: .managedAccount(id: managed))
+
+        #expect(line?.contains("spare@example.com") == true)
+    }
+
+    /// Expired windows are what a reset looks like through cached data, so the account in use may be
+    /// the emptiest one there is. Sending the user to a heavily used account on that evidence is worse
+    /// than saying nothing.
+    @Test
+    func `says nothing when only the active Codex account has expired windows`() {
+        let line = Self.codexRecommendation(rows: [
+            Self.codexRow("mine@example.com", percent: 95, isActive: true, resetsIn: -60),
+            Self.codexRow("other@example.com", percent: 80),
+        ])
+
+        #expect(line == nil)
+    }
+
     // MARK: - Codex fixtures
 
     private static func codexRow(
         _ email: String,
         percent: Double,
-        isActive: Bool = false) -> CodexAccountUsageSnapshot
+        isActive: Bool = false,
+        selectionSource: CodexActiveSource = .liveSystem,
+        resetsIn: TimeInterval = 3600) -> CodexAccountUsageSnapshot
     {
         CodexAccountUsageSnapshot(
             account: CodexVisibleAccount(
                 id: email,
                 email: email,
                 storedAccountID: nil,
-                selectionSource: .liveSystem,
+                selectionSource: selectionSource,
                 isActive: isActive,
                 isLive: isActive,
                 canReauthenticate: false,
@@ -229,7 +276,7 @@ struct AccountRecommendationTests {
                 primary: RateWindow(
                     usedPercent: percent,
                     windowMinutes: 300,
-                    resetsAt: self.now.addingTimeInterval(3600),
+                    resetsAt: self.now.addingTimeInterval(resetsIn),
                     resetDescription: nil),
                 secondary: nil,
                 tertiary: nil,
@@ -243,10 +290,14 @@ struct AccountRecommendationTests {
     private static func codexStore(
         rows: [CodexAccountUsageSnapshot],
         hidePersonalInfo: Bool = false,
+        activeSource: CodexActiveSource? = nil,
         onReconciliationLoad: (@Sendable () -> Void)? = nil) -> (UsageStore, SettingsStore)
     {
         let settings = testSettingsStore(suiteName: "AccountRecommendationTests-codex")
         settings.hidePersonalInfo = hidePersonalInfo
+        if let activeSource {
+            settings.codexActiveSource = activeSource
+        }
         if let onReconciliationLoad {
             settings._test_codexAccountSnapshotLoader = { activeSource in
                 onReconciliationLoad()
@@ -288,11 +339,13 @@ struct AccountRecommendationTests {
     private static func codexRecommendation(
         rows: [CodexAccountUsageSnapshot],
         hidePersonalInfo: Bool = false,
+        activeSource: CodexActiveSource? = nil,
         onReconciliationLoad: (@Sendable () -> Void)? = nil) -> String?
     {
         let (store, settings) = self.codexStore(
             rows: rows,
             hidePersonalInfo: hidePersonalInfo,
+            activeSource: activeSource,
             onReconciliationLoad: onReconciliationLoad)
         let accounts = CodexProviderImplementation().rankableAccounts(
             context: self.codexContext(store: store, settings: settings, rows: rows))
