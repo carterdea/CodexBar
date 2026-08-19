@@ -129,6 +129,9 @@ extension CostUsageScanner {
         var keyedRows: [String: ClaudeUsageRow] = [:]
         var unkeyedRows: [ClaudeUsageRow] = []
         var edits = ClaudeEditCollector()
+        // Edit records carry no provider marker, so they inherit the disposition of the assistant
+        // turn that requested them. Files that open with an edit have no turn to inherit from yet.
+        var lastTurnMatchedFilter = true
 
         let maxLineBytes = 512 * 1024
         // Keep the full line so usage at the tail isn't dropped on large tool outputs.
@@ -149,7 +152,9 @@ extension CostUsageScanner {
 
                     // Edit records ride on their own lines (Write/Edit tool results), so they are
                     // collected before the assistant/usage guards below reject everything else.
-                    edits.consume(line: line, range: range)
+                    if lastTurnMatchedFilter {
+                        edits.consume(line: line, range: range)
+                    }
 
                     guard line.bytes.containsAscii(#""type":"assistant""#) else { return }
                     guard line.bytes.containsAscii(#""usage""#) else { return }
@@ -160,7 +165,10 @@ extension CostUsageScanner {
                             let type = obj["type"] as? String,
                             type == "assistant"
                         else { return }
-                        guard Self.matchesClaudeProviderFilter(obj: obj, filter: providerFilter) else { return }
+                        lastTurnMatchedFilter = Self.matchesClaudeProviderFilter(
+                            obj: obj,
+                            filter: providerFilter)
+                        guard lastTurnMatchedFilter else { return }
 
                         guard let tsText = obj["timestamp"] as? String, let timestamp = Self.dateFromTimestamp(tsText)
                         else { return }
@@ -344,7 +352,12 @@ extension CostUsageScanner {
             }
         }
         if added == 0, removed == 0, isCreate, let content = result["content"] as? String {
-            added = content.split(separator: "\n", omittingEmptySubsequences: false).count
+            var lines = content.split(separator: "\n", omittingEmptySubsequences: false)
+            // A conventional trailing newline produces a final empty component that is not a line.
+            if lines.last?.isEmpty == true {
+                lines.removeLast()
+            }
+            added = lines.count
         }
         guard added > 0 || removed > 0 else { return nil }
 

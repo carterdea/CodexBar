@@ -75,7 +75,7 @@ struct CostUsageScannerClaudeEditsTests {
                     "toolUseResult": [
                         "type": "create",
                         "filePath": "/tmp/new.swift",
-                        "content": "line one\nline two\nline three",
+                        "content": "line one\nline two\nline three\n",
                         "structuredPatch": [],
                     ],
                 ],
@@ -201,10 +201,11 @@ struct CostUsageScannerClaudeEditsTests {
         #expect(entry.edits == CostUsageEditCounts(linesAdded: 2, linesRemoved: 1, filesCreated: 0))
     }
 
-    /// Codex has no edit records, so a row that blends the two providers would present Claude's
-    /// count as the pair's total. `merged(_:)` drops the fields rather than letting that happen.
+    /// The Claude fetcher always merges its report with a Pi sessions report, even an empty one.
+    /// `merged(_:)` therefore has to carry edit counts through, or the scanner's work is discarded
+    /// before the dashboard ever sees it and the panel cannot appear.
     @Test
-    func `merged reports drop Claude line counts`() {
+    func `merged reports keep Claude edit counts`() {
         let claude = CostUsageDailyReport(
             data: [CostUsageDailyReport.Entry(
                 date: "2026-03-04",
@@ -216,22 +217,45 @@ struct CostUsageScannerClaudeEditsTests {
                 modelBreakdowns: nil,
                 edits: CostUsageEditCounts(linesAdded: 400, linesRemoved: 90, filesCreated: 3))],
             summary: nil)
-        let codex = CostUsageDailyReport(
+        let empty = CostUsageDailyReport(data: [], summary: nil)
+
+        let merged = claude.merged(with: empty)
+
+        let entry = merged.data.first
+        #expect(entry?.totalTokens == 15)
+        #expect(entry?.edits == CostUsageEditCounts(linesAdded: 400, linesRemoved: 90, filesCreated: 3))
+    }
+
+    /// Provider siloing lives at the display layer, not in `merged(_:)`: the dashboard only sums
+    /// Claude inputs, so a report blending providers can never present Claude's count as the total.
+    @Test
+    func `merged reports sum edit counts across inputs`() {
+        let first = CostUsageDailyReport(
+            data: [CostUsageDailyReport.Entry(
+                date: "2026-03-04",
+                inputTokens: 10,
+                outputTokens: 5,
+                totalTokens: 15,
+                costUSD: 1,
+                modelsUsed: nil,
+                modelBreakdowns: nil,
+                edits: CostUsageEditCounts(linesAdded: 4, linesRemoved: 1, filesCreated: 1))],
+            summary: nil)
+        let second = CostUsageDailyReport(
             data: [CostUsageDailyReport.Entry(
                 date: "2026-03-04",
                 inputTokens: 20,
                 outputTokens: 6,
                 totalTokens: 26,
                 costUSD: 2,
-                modelsUsed: ["gpt-5.1-codex"],
-                modelBreakdowns: nil)],
+                modelsUsed: nil,
+                modelBreakdowns: nil,
+                edits: CostUsageEditCounts(linesAdded: 6, linesRemoved: 2, filesCreated: 0))],
             summary: nil)
 
-        let merged = claude.merged(with: codex)
+        let merged = first.merged(with: second)
 
-        let entry = merged.data.first
-        #expect(entry?.totalTokens == 41)
-        #expect(entry?.edits == nil)
+        #expect(merged.data.first?.edits == CostUsageEditCounts(linesAdded: 10, linesRemoved: 3, filesCreated: 1))
     }
 
     private static func editRecord(

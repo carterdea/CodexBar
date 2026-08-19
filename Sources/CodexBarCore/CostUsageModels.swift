@@ -388,8 +388,10 @@ public struct CostUsageDailyReport: Sendable, Decodable {
         public let costUSD: Double?
         public let modelsUsed: [String]?
         public let modelBreakdowns: [ModelBreakdown]?
-        /// Claude-only, and dropped by `merged(_:)`: a merged row would present Claude's count as
-        /// the pair's total, reading as "wrote no code" for the Codex half.
+        /// Claude-only: Codex rollouts carry no edit records. `merged(_:)` sums these like any
+        /// other count, because it also merges same-provider reports (Claude plus its Pi sessions)
+        /// where dropping them would discard real data. Provider siloing is enforced where the
+        /// figure is displayed — never present this as a total spanning both providers.
         public let edits: CostUsageEditCounts?
 
         private enum CodingKeys: String, CodingKey {
@@ -647,6 +649,7 @@ extension CostUsageDailyReport {
         var sawCost = false
         var modelsUsed: Set<String> = []
         var breakdowns: [String: BreakdownAccumulator] = [:]
+        var edits: CostUsageEditCounts?
 
         mutating func add(_ entry: Entry) {
             let entryDerivedTotalTokens = (entry.inputTokens ?? 0)
@@ -681,6 +684,9 @@ extension CostUsageDailyReport {
             }
             if let modelsUsed = entry.modelsUsed {
                 self.modelsUsed.formUnion(modelsUsed)
+            }
+            if let edits = entry.edits {
+                self.edits = (self.edits ?? .zero) + edits
             }
             if let modelBreakdowns = entry.modelBreakdowns {
                 for breakdown in modelBreakdowns {
@@ -722,7 +728,8 @@ extension CostUsageDailyReport {
                 totalTokens: totalTokens,
                 costUSD: self.sawCost ? self.costUSD : nil,
                 modelsUsed: modelsUsed,
-                modelBreakdowns: modelBreakdowns)
+                modelBreakdowns: modelBreakdowns,
+                edits: self.edits)
         }
     }
 
