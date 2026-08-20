@@ -142,9 +142,7 @@ final class AutoPrewarmCoordinator {
     }
 
     private func prewarmAccount(for target: PrewarmTarget) -> PrewarmAccount? {
-        // A failed refresh leaves the last known numbers in place, and those must not be read as a
-        // live report — the same hazard `AccountRanking` guards against for re-auth.
-        guard !target.hasError, let snapshot = target.snapshot else { return nil }
+        guard let snapshot = target.snapshot else { return nil }
         return PrewarmAccount(
             key: target.key,
             windows: snapshot.rankableWindows,
@@ -154,7 +152,7 @@ final class AutoPrewarmCoordinator {
             canStartSessionWindow: target.reach.canStartSessionWindow)
     }
 
-    private func targets(for provider: UsageProvider, usageStore: UsageStore) -> [PrewarmTarget] {
+    func targets(for provider: UsageProvider, usageStore: UsageStore) -> [PrewarmTarget] {
         // Provider-specific by design: the two providers publish per-account usage in different
         // collections, and reach their accounts by different means — a pasted Claude token versus a
         // Codex login in a home directory of its own. Neither is derivable from provider metadata.
@@ -165,8 +163,7 @@ final class AutoPrewarmCoordinator {
                     provider: provider,
                     key: Self.key(provider: provider, id: entry.account.id.uuidString),
                     label: entry.account.displayName,
-                    snapshot: entry.snapshot,
-                    hasError: entry.error != nil,
+                    snapshot: PrewarmTarget.liveSnapshot(entry.snapshot, error: entry.error),
                     reach: .claudeToken(entry.account))
             }
         case .codex:
@@ -175,8 +172,7 @@ final class AutoPrewarmCoordinator {
                     provider: provider,
                     key: Self.key(provider: provider, id: Self.codexAccountID(entry.account)),
                     label: entry.account.displayName,
-                    snapshot: entry.snapshot,
-                    hasError: entry.error != nil,
+                    snapshot: PrewarmTarget.liveSnapshot(entry.snapshot, error: entry.error),
                     reach: Self.codexReach(entry.account, settings: usageStore.settings))
             }
         default:
@@ -239,7 +235,7 @@ final class AutoPrewarmCoordinator {
 /// disagree. Ranking an account nothing can be sent on is not a wasted cycle but a permanent stall:
 /// it wins on headroom, takes the shared cooldown with it, and nothing about it changes before the
 /// next cycle, so it wins again and the account that *can* be reached is never prewarmed at all.
-private enum PrewarmReach {
+enum PrewarmReach {
     case claudeToken(ProviderTokenAccount)
     case codexManagedHome(String)
     case unreachable
@@ -277,11 +273,31 @@ private enum PrewarmReach {
 }
 
 /// One account as this coordinator sees it, with the numbers to rank it and the means to reach it.
-private struct PrewarmTarget {
+struct PrewarmTarget {
     let provider: UsageProvider
     let key: String
     let label: String
+    /// Only ever a snapshot the last refresh actually produced. See ``liveSnapshot(_:error:)``.
     let snapshot: UsageSnapshot?
-    let hasError: Bool
     let reach: PrewarmReach
+
+    /// The snapshot a refresh produced, or `nil` when that refresh failed.
+    ///
+    /// A failed refresh does not always arrive empty. `UsageStore` keeps the previous numbers when
+    /// a Codex account fails for a reason that says nothing about the account — no network, DNS, a
+    /// timeout — so the menu shows the last known figures instead of blanking out.
+    ///
+    /// Sampled, that value is a lie about *when*. Every failed refresh re-stamps the same old
+    /// percentage with the current time, so when the network comes back and a higher number
+    /// arrives, a climb that happened across the whole outage reads as one that happened in the
+    /// last few minutes. That is precisely the signal this feature treats as someone typing into
+    /// the account right now, and acting on it spends a message and a five-hour cooldown on an
+    /// account nobody is using.
+    ///
+    /// Applied once, here, rather than at each place that reads a snapshot: ranking a stale number
+    /// is the same hazard `AccountRanking` guards against for re-auth, and two guards for one rule
+    /// is one guard someone can forget to add.
+    static func liveSnapshot(_ snapshot: UsageSnapshot?, error: String?) -> UsageSnapshot? {
+        error == nil ? snapshot : nil
+    }
 }
