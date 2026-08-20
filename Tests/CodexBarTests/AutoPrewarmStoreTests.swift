@@ -14,13 +14,14 @@ struct AutoPrewarmStoreTests {
         return AutoKickStore(defaults: defaults)
     }
 
-    private static let key = "claude-token|11111111-2222-3333-4444-555555555555"
-    private static let otherKey = "claude-token|99999999-8888-7777-6666-555555555555"
+    private static let key = "claude|11111111-2222-3333-4444-555555555555"
+    private static let otherKey = "claude|99999999-8888-7777-6666-555555555555"
+    private static let codexKey = "codex|44444444-3333-2222-1111-000000000000"
 
     @Test
     func `prewarm is off until it is turned on`() throws {
         let store = try self.makeStore(suite: "AutoPrewarmStoreTests-default-off")
-        #expect(!store.isPrewarmEnabled)
+        #expect(!store.isPrewarmEnabled(for: .claude))
     }
 
     @Test
@@ -49,13 +50,30 @@ struct AutoPrewarmStoreTests {
         store.recordPrewarm(at: older, for: Self.key)
         store.recordPrewarm(at: older.addingTimeInterval(600), for: Self.otherKey)
 
-        #expect(store.lastPrewarmOfAnyAccountAt() == older.addingTimeInterval(600))
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "claude|") == older.addingTimeInterval(600))
     }
 
     @Test
     func `no prewarm at all reports no most-recent time`() throws {
         let store = try self.makeStore(suite: "AutoPrewarmStoreTests-any-empty")
-        #expect(store.lastPrewarmOfAnyAccountAt() == nil)
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "claude|") == nil)
+    }
+
+    /// A Claude session window and a Codex one are separate quotas that run at the same time, so
+    /// one shared timestamp would let whichever provider warmed first block the other for five
+    /// hours — the opposite of what the one-at-a-time rule is for.
+    @Test
+    func `the one-at-a-time cooldown is scoped to one provider`() throws {
+        let store = try self.makeStore(suite: "AutoPrewarmStoreTests-per-provider")
+        let at = Date(timeIntervalSince1970: 1_760_000_000)
+        store.recordPrewarm(at: at, for: Self.key)
+
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "claude|") == at)
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "codex|") == nil)
+
+        store.recordPrewarm(at: at.addingTimeInterval(60), for: Self.codexKey)
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "claude|") == at)
+        #expect(store.lastPrewarmOfAnyAccountAt(keyPrefix: "codex|") == at.addingTimeInterval(60))
     }
 
     /// The two features have different intervals — twelve hours for a weekly turnover, five for a
@@ -78,10 +96,21 @@ struct AutoPrewarmStoreTests {
     func `the two switches are independent`() throws {
         let store = try self.makeStore(suite: "AutoPrewarmStoreTests-switches")
         store.isEnabled = true
-        #expect(!store.isPrewarmEnabled)
+        #expect(!store.isPrewarmEnabled(for: .claude))
 
-        store.isPrewarmEnabled = true
+        store.setPrewarmEnabled(true, for: .claude)
         store.isEnabled = false
-        #expect(store.isPrewarmEnabled)
+        #expect(store.isPrewarmEnabled(for: .claude))
+    }
+
+    /// Each provider's pane shows its own switch. Sharing one flag would mean arming Claude's
+    /// prewarm also armed Codex's, which nobody asked for and which sends real messages.
+    @Test
+    func `each provider has its own prewarm switch`() throws {
+        let store = try self.makeStore(suite: "AutoPrewarmStoreTests-per-provider-switch")
+        store.setPrewarmEnabled(true, for: .claude)
+
+        #expect(store.isPrewarmEnabled(for: .claude))
+        #expect(!store.isPrewarmEnabled(for: .codex))
     }
 }

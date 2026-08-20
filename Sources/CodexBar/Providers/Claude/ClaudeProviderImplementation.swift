@@ -94,7 +94,7 @@ struct ClaudeProviderImplementation: ProviderImplementation {
 
         return [
             AutoKickToggle.descriptor(),
-            AutoPrewarmToggle.descriptor(),
+            AutoPrewarmToggle.descriptor(provider: .claude),
             ProviderSettingsToggleDescriptor(
                 id: "claude-model-scoped-weekly-usage-visible",
                 title: "Show model-specific weekly usage in widgets",
