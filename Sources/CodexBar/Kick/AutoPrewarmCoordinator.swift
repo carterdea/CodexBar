@@ -1,27 +1,29 @@
 import CodexBarCore
 import Foundation
 
-/// Starts a dormant Claude account's 5-hour clock while the account being worked in fills up, so
-/// the switch the user is about to make lands on a window that is already running.
+/// Starts a dormant account's 5-hour clock while the account being worked in fills up, so the
+/// switch the user is about to make lands on a window that is already running.
 ///
 /// ### What it can reach
 ///
-/// Only Claude **token accounts**, and only those holding an OAuth token the user pasted into
-/// CodexBar themselves — the same slot also stores web cookies and admin API keys, neither of
-/// which can send an inference request. That is not a shortcut, it is the whole of what is
-/// addressable: `claude-swap` accounts keep their credentials inside the `cswap` subprocess and
-/// hand CodexBar percentages only, and the ambient Claude Code login is by definition the one
-/// already active. Reaching a dormant claude-swap account would mean either becoming a second
-/// credential vault or switching the machine's live Claude login in the background, both of which
-/// `docs/claude-multi-account-and-status-items.md` rules out. So an account CodexBar cannot send a
-/// message on is simply never a candidate, and a user with no OAuth token accounts sees this
-/// feature do nothing at all.
+/// Claude **token accounts** holding an OAuth token the user pasted in, and **managed Codex
+/// accounts**, which are logins CodexBar keeps in a `CODEX_HOME` of its own. Both are accounts the
+/// app can address on purpose rather than by whatever is signed in at the moment.
 ///
-/// It also needs per-account numbers to decide with, and those only exist when upstream fetches
-/// every token account rather than just the selected one — `UsageStore.shouldFetchAllTokenAccounts`
-/// requires the stacked multi-account layout and more than one account. Below that bar
-/// `accountSnapshots` holds at most the selected account, no account is ever both active and
-/// distinct from a candidate, and the decision correctly declines to act.
+/// Everything else is out of reach by construction, not by omission. The same Claude token slot
+/// also stores web cookies and admin API keys, and neither can send an inference request.
+/// `claude-swap` accounts keep their credentials inside the `cswap` subprocess and hand CodexBar
+/// percentages only. The ambient Claude Code login and the ambient `~/.codex` login are not
+/// accounts so much as whichever login is signed in there, so a kick aimed at either lands wherever
+/// that happens to point. Reaching further would mean becoming a second credential vault or
+/// switching the machine's live login in the background, both of which
+/// `docs/claude-multi-account-and-status-items.md` rules out.
+///
+/// It also needs per-account numbers to decide with, and those exist only when the app fetches
+/// every account rather than just the selected one — `UsageStore.shouldFetchAllTokenAccounts` and
+/// `shouldFetchAllCodexVisibleAccounts` both want the stacked multi-account layout and more than
+/// one account. Below that bar no account is ever both active and distinct from a candidate, and
+/// the decision correctly declines to act.
 ///
 /// ### Why samples are held here and not read back from history
 ///
@@ -37,6 +39,15 @@ import Foundation
 @MainActor
 final class AutoPrewarmCoordinator {
     static let shared = AutoPrewarmCoordinator()
+
+    /// The providers a prewarm can act on.
+    static var providers: [UsageProvider] {
+        // Provider-specific by design: a prewarm needs a session window that begins with a request
+        // and an account CodexBar can address without switching the machine's live login. Only
+        // these two have both, and no provider metadata records either property, so the list is
+        // the feature rather than an unfactored special case.
+        [.claude, .codex]
+    }
 
     private let store: AutoKickStore
     private let logger = CodexBarLog.logger(LogCategories.notifications)
@@ -78,42 +89,51 @@ final class AutoPrewarmCoordinator {
     /// otherwise the first half hour after switching it on can decide nothing, and a silent wait is
     /// indistinguishable from the feature being broken. Only the *decision* reads the setting.
     private func handleSnapshotsChanged() {
+        guard let usageStore = self.usageStore else { return }
         let now = Date()
-        // Provider-specific by design: only Claude has a 5-hour window that begins with a request
-        // and an addressable per-account credential. Codex starts its window by running a CLI in
-        // one account's $CODEX_HOME, which cannot target an account that is not active — so there
-        // is nothing here to generalise across providers.
-        let accounts = self.usageStore?.accountSnapshots[UsageProvider.claude.instanceID] ?? []
-        self.recordSamples(accounts, now: now)
+        let targets = Self.providers.flatMap { self.targets(for: $0, usageStore: usageStore) }
+        self.recordSamples(targets, now: now)
 
+        // Each provider decides on its own accounts. A Codex account filling up says nothing about
+        // how much Claude capacity is left, so one merged ranking would let either provider's
+        // activity spend the other's quota.
+        for provider in Self.providers {
+            self.prewarmIfNeeded(provider: provider, targets: targets, usageStore: usageStore, now: now)
+        }
+    }
+
+    private func prewarmIfNeeded(
+        provider: UsageProvider,
+        targets: [PrewarmTarget],
+        usageStore: UsageStore,
+        now: Date)
+    {
+        let owned = targets.filter { $0.provider == provider }
         guard let candidate = AutoPrewarmDecision.candidate(
-            isEnabled: self.store.isPrewarmEnabled,
-            accounts: self.prewarmAccounts(accounts),
-            lastPrewarmOfAnyAccountAt: self.store.lastPrewarmOfAnyAccountAt(),
+            isEnabled: self.store.isPrewarmEnabled(for: provider),
+            accounts: owned.compactMap { self.prewarmAccount(for: $0) },
+            lastPrewarmOfAnyAccountAt: self.store.lastPrewarmOfAnyAccountAt(
+                keyPrefix: Self.keyPrefix(for: provider)),
             now: now),
-            let entry = accounts.first(where: { Self.key(for: $0.account) == candidate.key })
+            let target = owned.first(where: { $0.key == candidate.key })
         else { return }
 
         // Recorded before the message is sent, so a crash mid-send costs a missed prewarm rather
         // than a second message on an account the user is not even looking at.
         self.store.recordPrewarm(at: now, for: candidate.key)
-        self.logger.info("prewarming a dormant Claude account")
+        self.logger.info("prewarming a dormant account", metadata: ["provider": provider.rawValue])
 
         Task { @MainActor in
-            guard let usageStore = self.usageStore else { return }
-            guard let outcome = await KickCoordinator.shared
-                .kickClaudeTokenAccount(entry.account, store: usageStore)
-            else { return }
-            self.report(outcome, label: entry.account.displayName, settings: usageStore.settings)
+            guard let outcome = await target.reach.kick(store: usageStore) else { return }
+            self.report(outcome, target: target, settings: usageStore.settings)
         }
     }
 
-    private func recordSamples(_ accounts: [TokenAccountUsageSnapshot], now: Date) {
+    private func recordSamples(_ targets: [PrewarmTarget], now: Date) {
         var live: [String: [PrewarmSample]] = [:]
-        for entry in accounts {
-            let key = Self.key(for: entry.account)
-            let sample = entry.snapshot.map { PrewarmSample(at: now, percentByLane: $0.prewarmLanes) }
-            live[key] = PrewarmSampleRing.appending(sample, to: self.samples[key] ?? [], now: now)
+        for target in targets {
+            let sample = target.snapshot.map { PrewarmSample(at: now, percentByLane: $0.prewarmLanes) }
+            live[target.key] = PrewarmSampleRing.appending(sample, to: self.samples[target.key] ?? [], now: now)
         }
 
         // Accounts the user removed drop out entirely rather than keeping a series nothing will
@@ -121,56 +141,147 @@ final class AutoPrewarmCoordinator {
         self.samples = live
     }
 
-    private func prewarmAccounts(_ accounts: [TokenAccountUsageSnapshot]) -> [PrewarmAccount] {
-        accounts.compactMap { entry in
-            // A failed refresh leaves the last known numbers in place, and those must not be read
-            // as a live report — the same hazard `AccountRanking` guards against for re-auth.
-            guard entry.error == nil, let snapshot = entry.snapshot else { return nil }
-            let key = Self.key(for: entry.account)
-            return PrewarmAccount(
-                key: key,
-                windows: snapshot.rankableWindows,
-                sessionWindow: snapshot.prewarmSessionWindow,
-                samples: self.samples[key] ?? [],
-                lastPrewarmedAt: self.store.lastPrewarmedAt(for: key),
-                canStartSessionWindow: Self.canStartSessionWindow(entry.account))
+    private func prewarmAccount(for target: PrewarmTarget) -> PrewarmAccount? {
+        // A failed refresh leaves the last known numbers in place, and those must not be read as a
+        // live report — the same hazard `AccountRanking` guards against for re-auth.
+        guard !target.hasError, let snapshot = target.snapshot else { return nil }
+        return PrewarmAccount(
+            key: target.key,
+            windows: snapshot.rankableWindows,
+            sessionWindow: snapshot.prewarmSessionWindow,
+            samples: self.samples[target.key] ?? [],
+            lastPrewarmedAt: self.store.lastPrewarmedAt(for: target.key),
+            canStartSessionWindow: target.reach.canStartSessionWindow)
+    }
+
+    private func targets(for provider: UsageProvider, usageStore: UsageStore) -> [PrewarmTarget] {
+        // Provider-specific by design: the two providers publish per-account usage in different
+        // collections, and reach their accounts by different means — a pasted Claude token versus a
+        // Codex login in a home directory of its own. Neither is derivable from provider metadata.
+        switch provider {
+        case .claude:
+            (usageStore.accountSnapshots[provider.instanceID] ?? []).map { entry in
+                PrewarmTarget(
+                    provider: provider,
+                    key: Self.key(provider: provider, id: entry.account.id.uuidString),
+                    label: entry.account.displayName,
+                    snapshot: entry.snapshot,
+                    hasError: entry.error != nil,
+                    reach: .claudeToken(entry.account))
+            }
+        case .codex:
+            usageStore.codexAccountSnapshots.map { entry in
+                PrewarmTarget(
+                    provider: provider,
+                    key: Self.key(provider: provider, id: Self.codexAccountID(entry.account)),
+                    label: entry.account.displayName,
+                    snapshot: entry.snapshot,
+                    hasError: entry.error != nil,
+                    reach: Self.codexReach(entry.account, settings: usageStore.settings))
+            }
+        default:
+            []
         }
     }
 
-    /// The account's own stable id, which is persisted with the token account and survives
-    /// relabelling. Never the label or an email: this key is written to local defaults.
-    private static func key(for account: ProviderTokenAccount) -> String {
-        "claude-token|\(account.id.uuidString)"
+    /// A managed account's own home, or ``PrewarmReach/unreachable``.
+    ///
+    /// Two accounts are deliberately left unreachable. One with no stored account is the ambient
+    /// `~/.codex` login or a profile home CodexBar only reads, neither of which it owns. One that
+    /// is currently *live* has been swapped into `~/.codex` by `ManagedCodexAccountService`, so its
+    /// managed home is not where its credentials are right now — kicking it there would run against
+    /// whatever that directory still holds.
+    private static func codexReach(_ account: CodexVisibleAccount, settings: SettingsStore) -> PrewarmReach {
+        guard let storedAccountID = account.storedAccountID, !account.isLive else { return .unreachable }
+        guard let home = settings.codexAccountReconciliationSnapshot.storedAccounts
+            .first(where: { $0.id == storedAccountID })?
+            .managedHomePath
+        else { return .unreachable }
+        return .codexManagedHome(home)
     }
 
-    /// The same question ``KickCoordinator/kickClaudeTokenAccount(_:store:)`` answers before it
-    /// sends, asked early enough to keep an unsendable account out of the ranking.
-    ///
-    /// A Claude token account holds whatever the user pasted, and only one of the three things it
-    /// can be reaches the inference endpoint: web cookies and admin API keys are stored the same
-    /// way and cannot send a message. Classifying the string is pure — nothing is read from the
-    /// Keychain, Claude Code storage, or claude-swap — so this stays clear of the credential
-    /// boundary the rest of the feature is careful about.
-    private static func canStartSessionWindow(_ account: ProviderTokenAccount) -> Bool {
-        ClaudeCredentialRouting
-            .resolve(tokenAccountToken: account.token, manualCookieHeader: nil)
-            .oauthAccessToken != nil
+    /// The account's own persisted id where it has one, so the key survives relabelling. An account
+    /// without one can still be recognised as the account in use, which is all the sample ring
+    /// needs; it can never be a candidate, so a key that shifts costs nothing but its own history.
+    private static func codexAccountID(_ account: CodexVisibleAccount) -> String {
+        account.storedAccountID?.uuidString ?? "visible:\(account.id)"
+    }
+
+    /// Never a label or an email: these keys are written to local defaults.
+    private static func key(provider: UsageProvider, id: String) -> String {
+        "\(self.keyPrefix(for: provider))\(id)"
+    }
+
+    /// What scopes the one-at-a-time cooldown to a single provider.
+    private static func keyPrefix(for provider: UsageProvider) -> String {
+        "\(provider.rawValue)|"
     }
 
     /// Every outcome is said out loud, as with a manual kick. This one spends quota on an account
     /// the user is not looking at, so silence is even less acceptable here than there.
-    private func report(_ outcome: KickOutcome, label: String, settings: SettingsStore) {
-        let safeLabel = PersonalInfoRedactor.redactEmails(in: label, isEnabled: settings.hidePersonalInfo)
-            ?? label
+    private func report(_ outcome: KickOutcome, target: PrewarmTarget, settings: SettingsStore) {
+        let safeLabel = PersonalInfoRedactor.redactEmails(in: target.label, isEnabled: settings.hidePersonalInfo)
+            ?? target.label
         let body = outcome.notificationBody(started: String(format: L("prewarm_started_format"), safeLabel))
 
-        // Provider-specific by design: the notification names the provider whose account was
-        // touched, and this coordinator only ever touches Claude.
-        let title = ProviderDescriptorRegistry.descriptor(for: .claude).metadata.displayName
+        let title = ProviderDescriptorRegistry.descriptor(for: target.provider).metadata.displayName
         AppNotifications.shared.post(
-            idPrefix: "prewarm-claude",
+            idPrefix: "prewarm-\(target.provider.rawValue)",
             title: title,
             body: body,
             soundEnabled: false)
     }
+}
+
+/// How a prewarm reaches one account, or that it cannot.
+///
+/// An enum rather than a flag plus a payload so "unreachable" and "here is where to send" cannot
+/// disagree. Ranking an account nothing can be sent on is not a wasted cycle but a permanent stall:
+/// it wins on headroom, takes the shared cooldown with it, and nothing about it changes before the
+/// next cycle, so it wins again and the account that *can* be reached is never prewarmed at all.
+private enum PrewarmReach {
+    case claudeToken(ProviderTokenAccount)
+    case codexManagedHome(String)
+    case unreachable
+
+    /// Read only when choosing a candidate, never when identifying the account in use. Whether a
+    /// credential can send a message says nothing about whether someone is typing into it, and the
+    /// spare belonging to an unreachable account is exactly the one worth starting.
+    var canStartSessionWindow: Bool {
+        switch self {
+        case let .claudeToken(account):
+            // Web cookies and admin API keys are stored in the same slot and cannot send. Answered
+            // here so an account `KickCoordinator` would refuse never reaches the ranking. Nothing
+            // is read from the Keychain, Claude Code storage, or claude-swap to answer it.
+            ClaudeCredentialRouting
+                .resolve(tokenAccountToken: account.token, manualCookieHeader: nil)
+                .oauthAccessToken != nil
+        case .codexManagedHome:
+            true
+        case .unreachable:
+            false
+        }
+    }
+
+    @MainActor
+    func kick(store: UsageStore) async -> KickOutcome? {
+        switch self {
+        case let .claudeToken(account):
+            await KickCoordinator.shared.kickClaudeTokenAccount(account, store: store)
+        case let .codexManagedHome(home):
+            await KickCoordinator.shared.kickCodexManagedAccount(homePath: home, store: store)
+        case .unreachable:
+            nil
+        }
+    }
+}
+
+/// One account as this coordinator sees it, with the numbers to rank it and the means to reach it.
+private struct PrewarmTarget {
+    let provider: UsageProvider
+    let key: String
+    let label: String
+    let snapshot: UsageSnapshot?
+    let hasError: Bool
+    let reach: PrewarmReach
 }
