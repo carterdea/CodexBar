@@ -426,10 +426,10 @@
 "extra_usage_format" = "Extra verbruik: %1$@ / %2$@";
 "use_next_format" = "Gebruik hierna %1$@ — %2$@ gebruikt";
 "auto_kick_subtitle" = "Stuurt een kort bericht vanaf je account wanneer een zwaar gebruikte weeklimiet wordt gereset, zodat het nieuwe venster meteen begint.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "Stuurt een kort bericht vanaf een ander Claude-account wanneer het account waarin je werkt zijn limiet nadert, zodat het venster van 5 uur al loopt wanneer je overschakelt. Werkt alleen voor Claude-accounts waarvoor je een OAuth-token hebt toegevoegd.";
+"Start the next account's session window automatically" = "Sessievenster van het volgende account automatisch starten";
+"prewarm_started_format" = "%1$@ voorverwarmd — het sessievenster loopt nu.";
+"Only Claude OAuth token accounts can start a session window." = "Alleen Claude-accounts met een OAuth-token kunnen een sessievenster starten.";
 "Start a new weekly window automatically" = "Nieuw weekvenster automatisch starten";
 "jetbrains_detected_generate" = "Gedetecteerd: %@. Gebruik de AI-assistent één keer om quotagegevens te genereren en vernieuw vervolgens CodexBar.";
 "jetbrains_detected_select" = "Gedetecteerd: %@. Selecteer uw favoriete IDE in Instellingen en vernieuw vervolgens CodexBar.";

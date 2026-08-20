@@ -413,10 +413,10 @@
 "extra_usage_format" = "استفاده اضافی: %1$@ / %2$@";
 "use_next_format" = "بعد از این %1$@ را استفاده کنید — %2$@ استفاده‌شده";
 "auto_kick_subtitle" = "وقتی یک محدودیت هفتگی پرمصرف بازنشانی می‌شود، پیام کوتاهی از حساب شما ارسال می‌کند تا پنجره جدید بلافاصله شروع شود.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "وقتی حسابی که در آن کار می‌کنید به حد خود نزدیک می‌شود، پیام کوتاهی از یک حساب Claude دیگر می‌فرستد تا هنگام جابه‌جایی، پنجره ۵ ساعته‌اش از پیش در حال اجرا باشد. فقط برای حساب‌های Claude که برایشان توکن OAuth افزوده‌اید کار می‌کند.";
+"Start the next account's session window automatically" = "شروع خودکار پنجره نشست حساب بعدی";
+"prewarm_started_format" = "%1$@ از پیش گرم شد — پنجره نشست آن اکنون در حال اجراست.";
+"Only Claude OAuth token accounts can start a session window." = "فقط حساب‌های Claude با توکن OAuth می‌توانند پنجره نشست را شروع کنند.";
 "Start a new weekly window automatically" = "شروع خودکار پنجره هفتگی جدید";
 "jetbrains_detected_generate" = "شناسایی شد: %@. یک بار از دستیار هوش مصنوعی برای تولید داده های سهمیه استفاده کنید، سپس CodexBar را تازه کنید.";
 "jetbrains_detected_select" = "شناسایی شد: %@. IDE مورد علاقه تان را در تنظیمات انتخاب کنید، سپس CodexBar را تازه کنید.";

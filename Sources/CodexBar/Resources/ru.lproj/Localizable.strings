@@ -429,10 +429,10 @@
 "extra_usage_format" = "Дополнительное использование: %1$@ / %2$@";
 "use_next_format" = "Далее используйте %1$@ — использовано %2$@";
 "auto_kick_subtitle" = "Отправляет короткое сообщение с вашей учётной записи, когда сбрасывается активно использованный недельный лимит, чтобы новое окно началось сразу.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "Отправляет короткое сообщение с другой учётной записи Claude, когда та, в которой вы работаете, приближается к лимиту, чтобы её 5-часовое окно уже шло к моменту переключения. Работает только для учётных записей Claude, для которых добавлен токен OAuth.";
+"Start the next account's session window automatically" = "Автоматически начинать окно сеанса следующей учётной записи";
+"prewarm_started_format" = "%1$@ прогрета — окно сеанса уже идёт.";
+"Only Claude OAuth token accounts can start a session window." = "Начать окно сеанса могут только учётные записи Claude с токеном OAuth.";
 "Start a new weekly window automatically" = "Автоматически начинать новое недельное окно";
 "jetbrains_detected_generate" = "Обнаружено: %@. Используйте AI-помощник один раз, чтобы сгенерировать данные о квотах, затем обновите CodexBar.";
 "jetbrains_detected_select" = "Обнаружено: %@. Выберите предпочитаемый IDE в настройках, затем обновите CodexBar.";

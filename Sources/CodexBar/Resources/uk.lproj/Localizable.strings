@@ -426,10 +426,10 @@
 "extra_usage_format" = "Додаткове використання: %1$@ / %2$@";
 "use_next_format" = "Далі використовуйте %1$@ — використано %2$@";
 "auto_kick_subtitle" = "Надсилає коротке повідомлення з вашого облікового запису, коли скидається активно використаний тижневий ліміт, щоб нове вікно почалося одразу.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "Надсилає коротке повідомлення з іншого облікового запису Claude, коли той, у якому ви працюєте, наближається до ліміту, щоб його 5-годинне вікно вже тривало на момент перемикання. Працює лише для облікових записів Claude, для яких додано токен OAuth.";
+"Start the next account's session window automatically" = "Автоматично починати вікно сеансу наступного облікового запису";
+"prewarm_started_format" = "%1$@ прогріто — вікно сеансу вже триває.";
+"Only Claude OAuth token accounts can start a session window." = "Почати вікно сеансу можуть лише облікові записи Claude з токеном OAuth.";
 "Start a new weekly window automatically" = "Автоматично починати нове тижневе вікно";
 "jetbrains_detected_generate" = "Виявлено: %@. Скористайтеся помічником штучного інтелекту один раз, щоб створити дані квоти, а потім оновіть CodexBar.";
 "jetbrains_detected_select" = "Виявлено: %@. Виберіть бажану IDE у налаштуваннях, а потім оновіть CodexBar.";

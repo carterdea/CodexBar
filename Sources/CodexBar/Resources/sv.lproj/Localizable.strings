@@ -427,10 +427,10 @@
 "extra_usage_format" = "Extra användning: %1$@ / %2$@";
 "use_next_format" = "Använd %1$@ härnäst — %2$@ använt";
 "auto_kick_subtitle" = "Skickar ett kort meddelande från ditt konto när en flitigt använd veckogräns återställs, så att det nya fönstret börjar direkt.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "Skickar ett kort meddelande från ett annat Claude-konto när kontot du arbetar i närmar sig sin gräns, så att dess 5-timmarsfönster redan är i gång när du byter. Fungerar bara för Claude-konton som du lagt till en OAuth-token för.";
+"Start the next account's session window automatically" = "Starta nästa kontos sessionsfönster automatiskt";
+"prewarm_started_format" = "%1$@ förvärmt — sessionsfönstret är nu i gång.";
+"Only Claude OAuth token accounts can start a session window." = "Bara Claude-konton med OAuth-token kan starta ett sessionsfönster.";
 "Start a new weekly window automatically" = "Starta ett nytt veckofönster automatiskt";
 "jetbrains_detected_generate" = "Hittade: %@. Använd AI-assistenten en gång för att skapa kvotdata och uppdatera sedan CodexBar.";
 "jetbrains_detected_select" = "Hittade: %@. Välj önskad IDE i Inställningar och uppdatera sedan CodexBar.";

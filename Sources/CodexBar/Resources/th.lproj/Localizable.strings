@@ -413,10 +413,10 @@
 "extra_usage_format" = "การใช้งานเพิ่มเติม: %1$@ / %2$@";
 "use_next_format" = "ใช้ %1$@ ต่อไป — ใช้ไปแล้ว %2$@";
 "auto_kick_subtitle" = "ส่งข้อความสั้น ๆ จากบัญชีของคุณเมื่อขีดจำกัดรายสัปดาห์ที่ใช้งานหนักถูกรีเซ็ต เพื่อให้หน้าต่างใหม่เริ่มทันที";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "ส่งข้อความสั้น ๆ จากบัญชี Claude อื่นเมื่อบัญชีที่คุณกำลังใช้งานใกล้ถึงขีดจำกัด เพื่อให้หน้าต่าง 5 ชั่วโมงของบัญชีนั้นเริ่มทำงานไว้แล้วเมื่อคุณสลับไปใช้ ใช้ได้เฉพาะบัญชี Claude ที่คุณเพิ่มโทเค็น OAuth ไว้";
+"Start the next account's session window automatically" = "เริ่มหน้าต่างเซสชันของบัญชีถัดไปโดยอัตโนมัติ";
+"prewarm_started_format" = "อุ่นเครื่อง %1$@ แล้ว — หน้าต่างเซสชันกำลังทำงานอยู่";
+"Only Claude OAuth token accounts can start a session window." = "เฉพาะบัญชี Claude ที่มีโทเค็น OAuth เท่านั้นที่เริ่มหน้าต่างเซสชันได้";
 "Start a new weekly window automatically" = "เริ่มหน้าต่างรายสัปดาห์ใหม่โดยอัตโนมัติ";
 "jetbrains_detected_generate" = "ตรวจพบ: %@ ใช้ผู้ช่วย AI หนึ่งครั้งเพื่อสร้างข้อมูลโควต้า จากนั้นรีเฟรช CodexBar";
 "jetbrains_detected_select" = "ตรวจพบ: %@ เลือก IDE ที่คุณต้องการในการตั้งค่า จากนั้นรีเฟรช CodexBar";

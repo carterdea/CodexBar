@@ -426,10 +426,10 @@
 "extra_usage_format" = "Uso extra: %1$@ / %2$@";
 "use_next_format" = "Use %1$@ a seguir — %2$@ usado";
 "auto_kick_subtitle" = "Envia uma mensagem curta da sua conta quando um limite semanal muito usado é reiniciado, para que a nova janela comece imediatamente.";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "Envia uma mensagem curta de outra conta do Claude quando a conta em que você está trabalhando se aproxima do limite, para que a janela de 5 horas dela já esteja em andamento quando você trocar. Só funciona em contas do Claude para as quais você adicionou um token OAuth.";
+"Start the next account's session window automatically" = "Iniciar automaticamente a janela de sessão da próxima conta";
+"prewarm_started_format" = "%1$@ pré-aquecida — a janela de sessão dela já está em andamento.";
+"Only Claude OAuth token accounts can start a session window." = "Só contas do Claude com token OAuth podem iniciar uma janela de sessão.";
 "Start a new weekly window automatically" = "Iniciar uma nova janela semanal automaticamente";
 "jetbrains_detected_generate" = "Detectado: %@. Use o assistente de IA uma vez para gerar dados de cota e atualize o CodexBar.";
 "jetbrains_detected_select" = "Detectado: %@. Selecione sua IDE preferida em Ajustes e atualize o CodexBar.";

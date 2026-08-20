@@ -426,10 +426,10 @@
 "extra_usage_format" = "追加使用量: %1$@ / %2$@";
 "use_next_format" = "次は %1$@ を使用 — %2$@ 使用済み";
 "auto_kick_subtitle" = "使用量の多い週間上限がリセットされたときに、アカウントから短いメッセージを送信し、新しいウィンドウをすぐに開始します。";
-"auto_prewarm_subtitle" = "Sends a short message on a different Claude account when the one you are working in nears its limit, so its 5-hour window is already running when you switch. Only works for Claude accounts you added a token for.";
-"Start the next account's session window automatically" = "Start the next account's session window automatically";
-"prewarm_started_format" = "Pre-warmed %1$@ — its session window is now running.";
-"Only Claude OAuth token accounts can start a session window." = "Only Claude OAuth token accounts can start a session window.";
+"auto_prewarm_subtitle" = "作業中のアカウントが上限に近づくと、別の Claude アカウントから短いメッセージを送信し、切り替えたときに5時間ウィンドウがすでに動いているようにします。OAuth トークンを追加した Claude アカウントでのみ機能します。";
+"Start the next account's session window automatically" = "次のアカウントのセッションウィンドウを自動的に開始";
+"prewarm_started_format" = "%1$@ を事前に準備しました — セッションウィンドウが動き始めました。";
+"Only Claude OAuth token accounts can start a session window." = "セッションウィンドウを開始できるのは OAuth トークンの Claude アカウントだけです。";
 "Start a new weekly window automatically" = "新しい週間ウィンドウを自動的に開始";
 "jetbrains_detected_generate" = "検出: %@。AI アシスタントを一度使用してクォータデータを生成してから、CodexBar を更新してください。";
 "jetbrains_detected_select" = "検出: %@。設定でお使いの IDE を選択してから、CodexBar を更新してください。";
