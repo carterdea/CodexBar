@@ -413,6 +413,11 @@
 "extra_usage_format" = "Penggunaan ekstra: %1$@ / %2$@";
 "use_next_format" = "Gunakan %1$@ berikutnya — %2$@ terpakai";
 "auto_kick_subtitle" = "Mengirim pesan singkat dari akun Anda saat batas mingguan yang banyak terpakai disetel ulang, agar jendela baru langsung dimulai.";
+"auto_prewarm_subtitle" = "Mengirim pesan singkat dari akun Claude lain saat akun yang sedang Anda pakai mendekati batasnya, sehingga jendela 5 jamnya sudah berjalan ketika Anda beralih. Hanya berlaku untuk akun Claude yang sudah Anda tambahkan token OAuth-nya.";
+"auto_prewarm_subtitle_codex" = "Mengirim pesan singkat dari akun Codex lain saat akun yang sedang kamu pakai mendekati batasnya, sehingga jendela 5 jam miliknya sudah berjalan ketika kamu beralih. Hanya berlaku untuk akun Codex yang kamu tambahkan ke CodexBar, bukan akun yang sedang masuk di CLI Codex.";
+"Start the next account's session window automatically" = "Mulai jendela sesi akun berikutnya secara otomatis";
+"prewarm_started_format" = "%1$@ telah dipanaskan — jendela sesinya kini berjalan.";
+"Only Claude OAuth token accounts can start a session window." = "Hanya akun Claude dengan token OAuth yang dapat memulai jendela sesi.";
 "Start a new weekly window automatically" = "Mulai jendela mingguan baru secara otomatis";
 "jetbrains_detected_generate" = "Terdeteksi: %@. Gunakan asisten AI sekali untuk menghasilkan data kuota, lalu segarkan CodexBar.";
 "jetbrains_detected_select" = "Terdeteksi: %@. Pilih IDE pilihan Anda di Pengaturan, lalu segarkan CodexBar.";

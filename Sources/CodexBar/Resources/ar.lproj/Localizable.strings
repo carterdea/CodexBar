@@ -413,6 +413,11 @@
 "extra_usage_format" = "الاستخدام الإضافي: %1$@ / %2$@";
 "use_next_format" = "استخدم %1$@ بعد ذلك — تم استخدام %2$@";
 "auto_kick_subtitle" = "يرسل رسالة قصيرة من حسابك عند إعادة تعيين حد أسبوعي مستخدم بكثافة، لكي تبدأ النافذة الجديدة فورًا.";
+"auto_prewarm_subtitle" = "يرسل رسالة قصيرة من حساب Claude آخر عندما يقترب الحساب الذي تعمل فيه من حدّه، لتكون نافذته ذات الخمس ساعات قيد التشغيل بالفعل عند التبديل. يعمل فقط مع حسابات Claude التي أضفت لها رمز OAuth.";
+"auto_prewarm_subtitle_codex" = "يرسل رسالة قصيرة من حساب Codex آخر عندما يقترب الحساب الذي تعمل فيه من حدّه، لتكون نافذته ذات الخمس ساعات قيد التشغيل بالفعل عند التبديل. يعمل فقط مع حسابات Codex التي أضفتها إلى CodexBar، وليس الحساب المسجَّل دخوله في واجهة Codex السطرية.";
+"Start the next account's session window automatically" = "بدء نافذة جلسة الحساب التالي تلقائيًا";
+"prewarm_started_format" = "تم تسخين %1$@ مسبقًا — نافذة الجلسة تعمل الآن.";
+"Only Claude OAuth token accounts can start a session window." = "حسابات Claude ذات رمز OAuth فقط يمكنها بدء نافذة جلسة.";
 "Start a new weekly window automatically" = "بدء نافذة أسبوعية جديدة تلقائيًا";
 "jetbrains_detected_generate" = "تم اكتشاف: %@. استخدم مساعد الذكاء الاصطناعي مرة واحدة لتوليد بيانات الحصص، ثم قم بتحديث CodexBar.";
 "jetbrains_detected_select" = "تم اكتشاف: %@. اختر IDE المفضل لديك في الإعدادات، ثم قم بتحديث CodexBar.";

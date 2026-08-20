@@ -62,6 +62,81 @@ final class KickCoordinator {
         }
     }
 
+    /// Kicks one specific Claude token account and reports the outcome, or returns `nil` when a
+    /// Claude kick was already in flight and this one was dropped.
+    ///
+    /// Separate from ``kick(provider:store:trigger:)`` because that path resolves *the* Claude
+    /// credential — the single ambient Claude Code login — and has no parameter that could point it
+    /// at a different account. A token account is the one addressable Claude credential CodexBar
+    /// holds, because the user pasted it in themselves; nothing here reads Claude Code storage,
+    /// claude-swap storage, or the Keychain, so no dialog can appear and no credential boundary
+    /// moves. See `docs/claude-multi-account-and-status-items.md`.
+    func kickClaudeTokenAccount(_ account: ProviderTokenAccount, store: UsageStore) async -> KickOutcome? {
+        // Provider-specific by design: a pasted OAuth token is Claude's own way of addressing one
+        // account, and the endpoint it sends to is Claude's. Neither is derivable.
+        await self.kickAddressedAccount(provider: .claude, store: store) {
+            guard let token = ClaudeCredentialRouting
+                .resolve(tokenAccountToken: account.token, manualCookieHeader: nil)
+                .oauthAccessToken
+            else {
+                // Web cookies and admin API keys are also stored as Claude token accounts, and
+                // neither can send an inference request. Saying so beats a confusing HTTP failure.
+                return .unsupported(reason: L("Only Claude OAuth token accounts can start a session window."))
+            }
+            return await ClaudeKickRunner.kick(accessToken: token)
+        }
+    }
+
+    /// Kicks one specific Codex account by running the CLI in that account's own `CODEX_HOME`.
+    ///
+    /// `codex exec` has no flag for choosing an account, but it takes its login from `$CODEX_HOME`,
+    /// and a managed account is a real login in a directory of its own — the same directory
+    /// CodexBar already reads that account's usage out of. Scoping the environment therefore
+    /// reaches a dormant account without disturbing the active one.
+    ///
+    /// - Parameter homePath: a **managed** account's home. Never the ambient `~/.codex`, which is
+    ///   not an account so much as whichever login is currently signed in there; a kick aimed at it
+    ///   would land wherever that happens to point.
+    func kickCodexManagedAccount(homePath: String, store: UsageStore) async -> KickOutcome? {
+        // Provider-specific by design: `$CODEX_HOME` is Codex's own way of addressing one account,
+        // and running the CLI is the only thing that produces usage its backend counts.
+        await self.kickAddressedAccount(provider: .codex, store: store) {
+            await CodexKickRunner.kick(codexHome: homePath)
+        }
+    }
+
+    /// Runs one kick that names its own account, under the same per-provider occupancy guard as the
+    /// menu path. `nil` means a kick for that provider was already in flight and this one was
+    /// dropped.
+    ///
+    /// Occupancy stays per provider rather than per account: two messages at once on one provider
+    /// is the thing being prevented, and which account they land on does not change that.
+    ///
+    /// The outcome is returned rather than announced because the caller knows why it asked. A
+    /// prewarm has to say which account it touched, and the generic "Session window started." would
+    /// not.
+    private func kickAddressedAccount(
+        provider: UsageProvider,
+        store: UsageStore,
+        send: () async -> KickOutcome) async -> KickOutcome?
+    {
+        guard !self.inFlight.contains(provider) else {
+            self.logger.info("account kick ignored: already in flight", metadata: ["provider": provider.rawValue])
+            return nil
+        }
+        self.inFlight.insert(provider)
+        defer { self.inFlight.remove(provider) }
+
+        let outcome = await send()
+        self.logger.info(
+            "account kick finished",
+            metadata: ["provider": provider.rawValue, "outcome": outcome.logName])
+        if outcome.warrantsRefresh {
+            await store.refreshProvider(provider)
+        }
+        return outcome
+    }
+
     // MARK: - Internals
 
     private static func run(
@@ -113,9 +188,26 @@ final class KickCoordinator {
     /// after a tap is not an acceptable answer — including when nothing was sent.
     private func report(_ outcome: KickOutcome, provider: UsageProvider) {
         let title = ProviderDescriptorRegistry.descriptor(for: provider).metadata.displayName
-        let body = switch outcome {
+        let body = outcome.notificationBody(started: L("Session window started."))
+
+        AppNotifications.shared.post(
+            idPrefix: "kick-\(provider.rawValue)",
+            title: title,
+            body: body,
+            soundEnabled: false)
+    }
+}
+
+extension KickOutcome {
+    /// What to tell the user about an outcome.
+    ///
+    /// Only ``started`` reads differently between callers — a menu kick reports that a window
+    /// started, a prewarm names the account it started on — so the four ways a kick can end without
+    /// sending are worded once here instead of at each call site, where they would drift apart.
+    func notificationBody(started: String) -> String {
+        switch self {
         case .started:
-            L("Session window started.")
+            started
         case .alreadyRunning:
             L("A session window was already running, so nothing was sent.")
         case .noCredentials:
@@ -125,11 +217,5 @@ final class KickCoordinator {
         case let .failed(message):
             message
         }
-
-        AppNotifications.shared.post(
-            idPrefix: "kick-\(provider.rawValue)",
-            title: title,
-            body: body,
-            soundEnabled: false)
     }
 }

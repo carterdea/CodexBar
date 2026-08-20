@@ -438,6 +438,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             AppNotifications.shared.requestAuthorizationOnStartup()
             if let usageStore = self?.store {
                 AutoKickCoordinator.shared.start(usageStore: usageStore)
+                AutoPrewarmCoordinator.shared.start(usageStore: usageStore)
             }
             // A persisted non-USD choice opts into the daily exchange-rate refresh. The service
             // returns before networking for the default USD setting and Auto.

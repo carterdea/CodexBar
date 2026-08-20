@@ -426,6 +426,11 @@
 "extra_usage_format" = "Utilisation supplémentaire : %1$@ / %2$@";
 "use_next_format" = "Utilisez %1$@ ensuite — %2$@ utilisé";
 "auto_kick_subtitle" = "Envoie un court message depuis votre compte lorsqu’une limite hebdomadaire fortement utilisée est réinitialisée, afin que la nouvelle fenêtre démarre immédiatement.";
+"auto_prewarm_subtitle" = "Envoie un court message depuis un autre compte Claude lorsque celui dans lequel vous travaillez approche de sa limite, afin que sa fenêtre de 5 heures soit déjà en cours au moment de basculer. Ne fonctionne que pour les comptes Claude pour lesquels vous avez ajouté un jeton OAuth.";
+"auto_prewarm_subtitle_codex" = "Envoie un court message depuis un autre compte Codex lorsque celui dans lequel vous travaillez approche de sa limite, afin que sa fenêtre de 5 heures soit déjà en cours au moment de basculer. Ne fonctionne que pour les comptes Codex que vous avez ajoutés à CodexBar, pas pour celui connecté dans la CLI Codex.";
+"Start the next account's session window automatically" = "Démarrer automatiquement la fenêtre de session du compte suivant";
+"prewarm_started_format" = "%1$@ préchauffé — sa fenêtre de session est maintenant en cours.";
+"Only Claude OAuth token accounts can start a session window." = "Seuls les comptes Claude avec un jeton OAuth peuvent démarrer une fenêtre de session.";
 "Start a new weekly window automatically" = "Démarrer automatiquement une nouvelle fenêtre hebdomadaire";
 "jetbrains_detected_generate" = "Détecté : %@. Utilisez l'assistant IA une fois pour générer des données de quota, puis actualisez CodexBar.";
 "jetbrains_detected_select" = "Détecté : %@. Sélectionnez votre IDE préféré dans Paramètres, puis actualisez CodexBar.";

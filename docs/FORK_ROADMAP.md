@@ -9,7 +9,7 @@ read_when:
 
 This document outlines the development roadmap for the CodexBar fork maintained by Brandon Charleson.
 
-## ✅ Phase 1: Fork Identity (COMPLETE)
+## Phase 1: Fork Identity (COMPLETE)
 
 **Status:** Completed Jan 4, 2026
 
@@ -23,7 +23,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🔧 Phase 2: Enhanced Augment Diagnostics
+## Phase 2: Enhanced Augment Diagnostics
 
 **Goal:** Fix persistent cookie disconnection issues with better logging and diagnostics
 
@@ -61,7 +61,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🎯 Phase 3: Quotio Feature Analysis
+## Phase 3: Quotio Feature Analysis
 
 **Goal:** Identify and cherry-pick valuable features from Quotio without copying code
 
@@ -95,7 +95,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🔄 Phase 4: Upstream Sync Workflow
+## Phase 4: Upstream Sync Workflow
 
 **Goal:** Set up automated workflow to sync with upstream while maintaining fork changes
 
@@ -123,7 +123,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🚀 Phase 5: Multi-Account Management Foundation
+## Phase 5: Multi-Account Management Foundation
 
 **Goal:** Implement multi-account support for providers (starting with Augment)
 
@@ -163,7 +163,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 📋 Future Enhancements
+## Future Enhancements
 
 ### Short Term (1-2 weeks)
 - [ ] Augment cookie issue resolution (Phase 2)
@@ -184,7 +184,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🤝 Upstream Contribution Strategy
+## Upstream Contribution Strategy
 
 **When to Contribute Upstream:**
 - Bug fixes that benefit all users
@@ -207,7 +207,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 📊 Success Metrics
+## Success Metrics
 
 **Technical:**
 - Zero cookie disconnection issues
@@ -223,7 +223,7 @@ This document outlines the development roadmap for the CodexBar fork maintained 
 
 ---
 
-## 🔗 Related Documentation
+## Related Documentation
 
 - [Augment Provider](augment.md) - Augment-specific documentation
 - [Development Guide](DEVELOPMENT.md) - Build and test instructions

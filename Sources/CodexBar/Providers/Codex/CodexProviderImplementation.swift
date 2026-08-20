@@ -78,6 +78,7 @@ struct CodexProviderImplementation: ProviderImplementation {
 
         return [
             AutoKickToggle.descriptor(),
+            AutoPrewarmToggle.descriptor(provider: .codex),
             ProviderSettingsToggleDescriptor(
                 id: "codex-local-session-cost-ledger",
                 title: "Local session cost estimates",

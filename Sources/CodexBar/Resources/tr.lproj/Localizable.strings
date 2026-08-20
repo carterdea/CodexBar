@@ -411,6 +411,11 @@
 "extra_usage_format" = "Ekstra kullanım: %1$@ / %2$@";
 "use_next_format" = "Sonraki: %1$@ kullanın — %2$@ kullanıldı";
 "auto_kick_subtitle" = "Yoğun kullanılan bir haftalık sınır sıfırlandığında hesabınızdan kısa bir mesaj gönderir, böylece yeni pencere hemen başlar.";
+"auto_prewarm_subtitle" = "Üzerinde çalıştığınız hesap sınırına yaklaşırken başka bir Claude hesabından kısa bir mesaj gönderir; böylece geçiş yaptığınızda o hesabın 5 saatlik penceresi çoktan işlemeye başlamış olur. Yalnızca OAuth belirteci eklediğiniz Claude hesapları için çalışır.";
+"auto_prewarm_subtitle_codex" = "Üzerinde çalıştığınız hesap sınırına yaklaştığında başka bir Codex hesabından kısa bir ileti gönderir, böylece geçiş yaptığınızda o hesabın 5 saatlik penceresi çoktan işliyor olur. Yalnızca CodexBar’a eklediğiniz Codex hesapları için çalışır, Codex komut satırında oturum açmış olan hesap için çalışmaz.";
+"Start the next account's session window automatically" = "Sonraki hesabın oturum penceresini otomatik başlat";
+"prewarm_started_format" = "%1$@ önceden ısıtıldı — oturum penceresi artık işliyor.";
+"Only Claude OAuth token accounts can start a session window." = "Oturum penceresini yalnızca OAuth belirteci olan Claude hesapları başlatabilir.";
 "Start a new weekly window automatically" = "Yeni haftalık pencereyi otomatik başlat";
 "jetbrains_detected_generate" = "Algılandı: %@. Kota verisini oluşturmak için AI asistanını bir kez kullanın, ardından CodexBar'ı yenileyin.";
 "jetbrains_detected_select" = "Algılandı: %@. Ayarlar'da tercih ettiğiniz IDE'yi seçin, ardından CodexBar'ı yenileyin.";

@@ -14,6 +14,19 @@ public protocol RankableAccount {
     var rankingNeedsReauth: Bool { get }
 }
 
+extension UsageSnapshot {
+    /// Every quota window this snapshot reported, flattened into one list: the three positional
+    /// lanes plus any model-scoped ones.
+    ///
+    /// `NamedRateWindow.usageKnown` is dropped because some providers publish a named window's
+    /// reset metadata before its usage, and an unknown value carries no percent worth ranking on.
+    public var rankableWindows: [RateWindow] {
+        var windows = [self.primary, self.secondary, self.tertiary].compactMap(\.self)
+        windows.append(contentsOf: (self.extraRateWindows ?? []).filter(\.usageKnown).map(\.window))
+        return windows
+    }
+}
+
 /// Orders accounts by "which should I use next" — most headroom first.
 ///
 /// One place decides this so the order is a property of the data rather than something each view
