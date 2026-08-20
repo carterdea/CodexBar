@@ -197,16 +197,23 @@ struct PrewarmSnapshotProjectionTests {
 
     /// The count bound holds, and it drops the oldest rather than the newest — the newest sample is
     /// half of every rise the decision can still detect.
+    ///
+    /// The fixture is built oldest-first because that is the order the ring maintains and the order
+    /// `removeFirst` reads as "oldest". Newest-first would trim from the wrong end while the count
+    /// assertion still passed, which is exactly the mistake this test exists to catch.
     @Test
     func `a full ring trims the oldest samples to stay at capacity`() {
-        let series = (0..<PrewarmSampleRing.capacity).map { index in
+        let capacity = PrewarmSampleRing.capacity
+        let series = (0..<capacity).map { index in
             PrewarmSample(
-                at: Self.now.addingTimeInterval(-Double(index)),
+                at: Self.now.addingTimeInterval(-Double(capacity - index)),
                 percentByLane: ["primary": 10])
         }
         let newest = Self.sample(agoMinutes: 0, percent: 99)
         let ring = PrewarmSampleRing.appending(newest, to: series, now: Self.now)
-        #expect(ring.count == PrewarmSampleRing.capacity)
+        #expect(ring.count == capacity)
         #expect(ring.last == newest)
+        #expect(ring.first == series[1])
+        #expect(!ring.contains(series[0]))
     }
 }
