@@ -173,6 +173,24 @@ struct AutoPrewarmDecisionTests {
         #expect(Self.candidateKey(Self.standardPair(candidateHasSessionWindow: false)) == nil)
     }
 
+    /// Codex always stamps a reset instant, so a window it is no longer running shows up as one
+    /// that has already passed rather than as a missing one. Reading only the missing shape would
+    /// make this decision correct for Claude and silent forever for Codex.
+    @Test
+    func `an account whose session window has already reset is prewarmed`() {
+        let expired = Self.now.addingTimeInterval(-60)
+        #expect(Self.candidateKey(Self.standardPair(candidateSessionResetsAt: expired)) == "spare")
+    }
+
+    /// The boundary between the two: a reset instant of exactly now has passed, one a second later
+    /// has not.
+    @Test
+    func `a session window resetting this instant counts as stopped`() {
+        #expect(Self.candidateKey(Self.standardPair(candidateSessionResetsAt: Self.now)) == "spare")
+        #expect(Self.candidateKey(Self.standardPair(
+            candidateSessionResetsAt: Self.now.addingTimeInterval(1))) == nil)
+    }
+
     @Test
     func `the account being used is never its own candidate`() {
         let onlyBusy = [Self.account("busy", percent: 90, samples: Self.risingSamples())]

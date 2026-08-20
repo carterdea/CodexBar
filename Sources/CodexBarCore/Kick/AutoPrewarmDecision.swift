@@ -190,10 +190,7 @@ public enum AutoPrewarmDecision {
                 guard account.key != active.key else { return nil }
                 guard account.canStartSessionWindow else { return nil }
                 guard let session = account.sessionWindow else { return nil }
-                // A reset instant means the 5-hour clock is already running. Kicking then spends a
-                // message to start something that started without us, which is the one failure this
-                // feature has no excuse for.
-                guard session.resetsAt == nil else { return nil }
+                guard !self.isSessionClockRunning(session, now: now) else { return nil }
                 guard let percent = AccountRanking.bindingUsedPercent(account.windows, now: now) else { return nil }
                 let headroom = 100 - percent
                 guard headroom > self.minimumHeadroomPercent else { return nil }
@@ -207,6 +204,19 @@ public enum AutoPrewarmDecision {
                 return lhs.account.key > rhs.account.key
             }?
             .account
+    }
+
+    /// Whether the 5-hour clock is already running, in which case a kick spends a message to start
+    /// something that started without us. That is the one failure this feature has no excuse for.
+    ///
+    /// Two window shapes mean stopped, and which one arrives depends on the provider. Claude sends
+    /// the lane with no reset instant at all. Codex always stamps one, so a Codex window that is no
+    /// longer running shows up as a reset instant that has already passed. Reading only the first
+    /// shape would make this never fire for Codex, and reading only the second would make it fire
+    /// on every Claude account that has no lane.
+    public static func isSessionClockRunning(_ window: RateWindow, now: Date) -> Bool {
+        guard let resetsAt = window.resetsAt else { return false }
+        return resetsAt > now
     }
 
     // MARK: - Internals
