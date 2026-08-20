@@ -425,6 +425,7 @@
 "use_next_format" = "Als Nächstes %1$@ verwenden — %2$@ verbraucht";
 "auto_kick_subtitle" = "Sendet eine kurze Nachricht über dein Konto, wenn ein stark genutztes Wochenlimit zurückgesetzt wird, damit das neue Fenster sofort beginnt.";
 "auto_prewarm_subtitle" = "Sendet eine kurze Nachricht über ein anderes Claude-Konto, wenn das Konto, in dem du arbeitest, sich seinem Limit nähert, damit dessen 5-Stunden-Fenster beim Wechsel bereits läuft. Funktioniert nur für Claude-Konten, für die du ein OAuth-Token hinterlegt hast.";
+"auto_prewarm_subtitle_codex" = "Sendet eine kurze Nachricht über ein anderes Codex-Konto, wenn das Konto, in dem du arbeitest, sich seinem Limit nähert, damit dessen 5-Stunden-Fenster beim Wechsel bereits läuft. Funktioniert nur für Codex-Konten, die du zu CodexBar hinzugefügt hast, nicht für das in der Codex-CLI angemeldete Konto.";
 "Start the next account's session window automatically" = "Sitzungsfenster des nächsten Kontos automatisch starten";
 "prewarm_started_format" = "%1$@ vorgewärmt — das Sitzungsfenster läuft jetzt.";
 "Only Claude OAuth token accounts can start a session window." = "Nur Claude-Konten mit OAuth-Token können ein Sitzungsfenster starten.";

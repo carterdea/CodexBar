@@ -438,6 +438,7 @@
 "use_next_format" = "接下來使用 %1$@ — 已用 %2$@";
 "auto_kick_subtitle" = "當用量較高的每週限額重設時，從你的帳戶傳送一則簡短訊息，讓新視窗立即開始。";
 "auto_prewarm_subtitle" = "當你正在使用的帳號接近上限時，從另一個 Claude 帳號傳送一則簡短訊息，這樣切換過去時它的 5 小時視窗已經在執行。僅適用於你新增了 OAuth 權杖的 Claude 帳號。";
+"auto_prewarm_subtitle_codex" = "當你正在使用的帳號接近上限時，從另一個 Codex 帳號傳送一則簡短訊息，這樣切換過去時它的 5 小時視窗已經在執行。僅適用於你新增到 CodexBar 的 Codex 帳號，不適用於已登入 Codex 命令列的帳號。";
 "Start the next account's session window automatically" = "自動開始下一個帳號的工作階段視窗";
 "prewarm_started_format" = "已預熱 %1$@ — 其工作階段視窗現已開始。";
 "Only Claude OAuth token accounts can start a session window." = "只有具備 OAuth 權杖的 Claude 帳號才能開始工作階段視窗。";

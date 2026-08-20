@@ -440,6 +440,7 @@
 "use_next_format" = "接下来使用 %1$@ — 已用 %2$@";
 "auto_kick_subtitle" = "当用量较高的每周限额重置时，从你的账户发送一条简短消息，让新窗口立即开始。";
 "auto_prewarm_subtitle" = "当你正在使用的账号接近上限时，从另一个 Claude 账号发送一条简短消息，这样切换过去时它的 5 小时窗口已经在运行。仅适用于你添加了 OAuth 令牌的 Claude 账号。";
+"auto_prewarm_subtitle_codex" = "当你正在使用的账号接近上限时，从另一个 Codex 账号发送一条简短消息，这样切换过去时它的 5 小时窗口已经在运行。仅适用于你添加到 CodexBar 的 Codex 账号，不适用于已登录 Codex 命令行的账号。";
 "Start the next account's session window automatically" = "自动开始下一个账号的会话窗口";
 "prewarm_started_format" = "已预热 %1$@ — 其会话窗口现已开始。";
 "Only Claude OAuth token accounts can start a session window." = "只有带 OAuth 令牌的 Claude 账号才能开始会话窗口。";

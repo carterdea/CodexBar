@@ -427,6 +427,7 @@
 "use_next_format" = "Dùng %1$@ tiếp theo — đã dùng %2$@";
 "auto_kick_subtitle" = "Gửi một tin nhắn ngắn từ tài khoản của bạn khi giới hạn hằng tuần dùng nhiều được đặt lại, để cửa sổ mới bắt đầu ngay.";
 "auto_prewarm_subtitle" = "Gửi một tin nhắn ngắn từ một tài khoản Claude khác khi tài khoản bạn đang dùng sắp chạm giới hạn, để cửa sổ 5 giờ của nó đã chạy sẵn khi bạn chuyển sang. Chỉ hoạt động với các tài khoản Claude mà bạn đã thêm mã thông báo OAuth.";
+"auto_prewarm_subtitle_codex" = "Gửi một tin nhắn ngắn từ một tài khoản Codex khác khi tài khoản bạn đang dùng gần chạm giới hạn, để cửa sổ 5 giờ của nó đã chạy sẵn khi bạn chuyển sang. Chỉ hoạt động với các tài khoản Codex bạn đã thêm vào CodexBar, không phải tài khoản đang đăng nhập trong Codex CLI.";
 "Start the next account's session window automatically" = "Tự động bắt đầu cửa sổ phiên của tài khoản kế tiếp";
 "prewarm_started_format" = "Đã làm nóng trước %1$@ — cửa sổ phiên của nó hiện đang chạy.";
 "Only Claude OAuth token accounts can start a session window." = "Chỉ tài khoản Claude có mã thông báo OAuth mới bắt đầu được cửa sổ phiên.";
