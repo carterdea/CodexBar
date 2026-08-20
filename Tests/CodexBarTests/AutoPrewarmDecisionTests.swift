@@ -47,14 +47,16 @@ struct AutoPrewarmDecisionTests {
         sessionResetsAt: Date? = nil,
         hasSessionWindow: Bool = true,
         samples: [PrewarmSample] = [],
-        lastPrewarmedAt: Date? = nil) -> PrewarmAccount
+        lastPrewarmedAt: Date? = nil,
+        canStartSessionWindow: Bool = true) -> PrewarmAccount
     {
         PrewarmAccount(
             key: key,
             windows: [self.window(percent)],
             sessionWindow: hasSessionWindow ? self.session(0, resetsAt: sessionResetsAt) : nil,
             samples: samples,
-            lastPrewarmedAt: lastPrewarmedAt)
+            lastPrewarmedAt: lastPrewarmedAt,
+            canStartSessionWindow: canStartSessionWindow)
     }
 
     /// The ordinary case the whole feature exists for: a busy account and one dormant spare.
@@ -64,6 +66,7 @@ struct AutoPrewarmDecisionTests {
         candidateSessionResetsAt: Date? = nil,
         candidateHasSessionWindow: Bool = true,
         candidateLastPrewarmedAt: Date? = nil,
+        candidateCanStartSessionWindow: Bool = true,
         samples: [PrewarmSample] = AutoPrewarmDecisionTests.risingSamples()) -> [PrewarmAccount]
     {
         [
@@ -73,7 +76,8 @@ struct AutoPrewarmDecisionTests {
                 percent: candidatePercent,
                 sessionResetsAt: candidateSessionResetsAt,
                 hasSessionWindow: candidateHasSessionWindow,
-                lastPrewarmedAt: candidateLastPrewarmedAt),
+                lastPrewarmedAt: candidateLastPrewarmedAt,
+                canStartSessionWindow: candidateCanStartSessionWindow),
         ]
     }
 
@@ -147,7 +151,8 @@ struct AutoPrewarmDecisionTests {
             windows: [Self.window(10), Self.window(95)],
             sessionWindow: Self.session(0, resetsAt: nil),
             samples: [],
-            lastPrewarmedAt: nil)
+            lastPrewarmedAt: nil,
+            canStartSessionWindow: true)
         #expect(Self.candidateKey([Self.account("busy", percent: 90, samples: Self.risingSamples()), spare]) == nil)
     }
 
@@ -172,6 +177,39 @@ struct AutoPrewarmDecisionTests {
     func `the account being used is never its own candidate`() {
         let onlyBusy = [Self.account("busy", percent: 90, samples: Self.risingSamples())]
         #expect(Self.candidateKey(onlyBusy) == nil)
+    }
+
+    // MARK: - Whether a message can be sent at all
+
+    /// A Claude token account may hold web cookies or an admin API key instead of an OAuth token,
+    /// and neither can send an inference request.
+    @Test
+    func `an account nothing can be sent on is never the candidate`() {
+        #expect(Self.candidateKey(Self.standardPair(candidateCanStartSessionWindow: false)) == nil)
+    }
+
+    /// The reason this is a rule and not a nicety. Ranking an unsendable account puts it in front
+    /// of the one that works, and since the caller records the cooldown before it sends, that spare
+    /// would stay blocked for five hours at a time and never be prewarmed at all.
+    @Test
+    func `an unsendable account does not outrank the one that can be prewarmed`() {
+        let accounts = [
+            Self.account("busy", percent: 90, samples: Self.risingSamples()),
+            Self.account("roomy-but-unsendable", percent: 5, canStartSessionWindow: false),
+            Self.account("sendable", percent: 40),
+        ]
+        #expect(Self.candidateKey(accounts) == "sendable")
+    }
+
+    /// Being unable to send *on* an account says nothing about whether someone is working *in* it.
+    /// A user typing into a cookie-backed account still wants their OAuth spare warmed up.
+    @Test
+    func `an account nothing can be sent on can still be the one in use`() {
+        let accounts = [
+            Self.account("busy", percent: 90, samples: Self.risingSamples(), canStartSessionWindow: false),
+            Self.account("spare", percent: 20),
+        ]
+        #expect(Self.candidateKey(accounts) == "spare")
     }
 
     // MARK: - The cooldown
@@ -247,6 +285,31 @@ struct AutoPrewarmDecisionTests {
     func `a rise just inside the activity window still means the account is in use`() {
         let fresh = Self.risingSamples(endingAgo: AutoPrewarmDecision.activityWindow - 1)
         #expect(Self.candidateKey(Self.standardPair(samples: fresh)) == "spare")
+    }
+
+    /// The case adjacent-pair comparison gets wrong. No single step clears the threshold, but the
+    /// climb across half an hour is well over it, and this is what a slow burn looks like whenever
+    /// the app refreshes often enough to split the work into small steps.
+    @Test
+    func `a rise accumulated across three samples counts`() {
+        let creeping = [
+            PrewarmSample(at: Self.now.addingTimeInterval(-20 * 60), percentByLane: ["session": 20.0]),
+            PrewarmSample(at: Self.now.addingTimeInterval(-10 * 60), percentByLane: ["session": 20.3]),
+            PrewarmSample(at: Self.now, percentByLane: ["session": 20.6]),
+        ]
+        #expect(Self.candidateKey(Self.standardPair(samples: creeping)) == "spare")
+    }
+
+    /// The accumulation is still bounded by the activity window: reaching further back than that
+    /// would let a climb from an hour ago read as someone typing now.
+    @Test
+    func `an accumulated rise reaching past the activity window does not count`() {
+        let spread = [
+            PrewarmSample(at: Self.now.addingTimeInterval(-31 * 60), percentByLane: ["session": 20.0]),
+            PrewarmSample(at: Self.now.addingTimeInterval(-16 * 60), percentByLane: ["session": 20.3]),
+            PrewarmSample(at: Self.now, percentByLane: ["session": 20.6]),
+        ]
+        #expect(Self.candidateKey(Self.standardPair(samples: spread)) == nil)
     }
 
     @Test
@@ -372,7 +435,8 @@ struct AutoPrewarmDecisionTests {
             windows: [],
             sessionWindow: Self.session(0, resetsAt: nil),
             samples: Self.risingSamples(),
-            lastPrewarmedAt: nil)
+            lastPrewarmedAt: nil,
+            canStartSessionWindow: true)
         #expect(AutoPrewarmDecision.activeAccount(among: [unreadable], now: Self.now) == nil)
         let busy = Self.account("busy", percent: 90, samples: Self.risingSamples())
         #expect(Self.candidateKey([busy, unreadable]) == nil)

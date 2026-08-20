@@ -38,19 +38,32 @@ public struct PrewarmAccount: Sendable, Equatable {
     public let samples: [PrewarmSample]
     /// When this account was last prewarmed, across launches.
     public let lastPrewarmedAt: Date?
+    /// Whether a session window can actually be started on this account.
+    ///
+    /// Ranking an account the caller would refuse to send on is not a wasted cycle, it is a
+    /// permanent stall: it wins on headroom, takes the shared cooldown with it, and nothing about
+    /// it changes before the next cycle, so it wins again and the account that *can* be reached is
+    /// never prewarmed at all.
+    ///
+    /// Read only when choosing a candidate, never when identifying the account in use. Whether a
+    /// credential can send a message says nothing about whether someone is typing into it, and the
+    /// spare belonging to an unkickable account is exactly the one worth starting.
+    public let canStartSessionWindow: Bool
 
     public init(
         key: String,
         windows: [RateWindow],
         sessionWindow: RateWindow?,
         samples: [PrewarmSample],
-        lastPrewarmedAt: Date?)
+        lastPrewarmedAt: Date?,
+        canStartSessionWindow: Bool)
     {
         self.key = key
         self.windows = windows
         self.sessionWindow = sessionWindow
         self.samples = samples
         self.lastPrewarmedAt = lastPrewarmedAt
+        self.canStartSessionWindow = canStartSessionWindow
     }
 }
 
@@ -100,17 +113,25 @@ public enum AutoPrewarmDecision {
     /// When this account's usage last rose, or `nil` if it never did within a comparable gap.
     ///
     /// Walks newest-first and stops at the first rise, so the answer is the most recent one.
+    ///
+    /// Each sample is compared against **every** earlier one still inside the activity window, not
+    /// just the one before it. Adjacent pairs alone would make detection worse the more often the
+    /// app refreshes: the same hour of work split across more samples puts less of the climb
+    /// between any two of them, so a steady 20.0 -> 20.3 -> 20.6 clears the threshold over half an
+    /// hour while no single step comes close. The rule is a rise between two samples at most one
+    /// window apart, and that is what this looks for.
     public static func lastRise(in samples: [PrewarmSample]) -> Date? {
         let ordered = samples.sorted { $0.at < $1.at }
         guard ordered.count >= 2 else { return nil }
 
-        for index in stride(from: ordered.count - 1, to: 0, by: -1) {
-            let later = ordered[index]
-            let earlier = ordered[index - 1]
-            let gap = later.at.timeIntervalSince(earlier.at)
-            guard gap >= 0, gap <= self.activityWindow else { continue }
-            guard self.rose(from: earlier, to: later) else { continue }
-            return later.at
+        for laterIndex in stride(from: ordered.count - 1, through: 1, by: -1) {
+            let later = ordered[laterIndex]
+            for earlierIndex in stride(from: laterIndex - 1, through: 0, by: -1) {
+                let earlier = ordered[earlierIndex]
+                // Sorted, so the first predecessor out of range puts every older one out too.
+                guard later.at.timeIntervalSince(earlier.at) <= self.activityWindow else { break }
+                if self.rose(from: earlier, to: later) { return later.at }
+            }
         }
         return nil
     }
@@ -167,6 +188,7 @@ public enum AutoPrewarmDecision {
         return accounts
             .compactMap { account -> (account: PrewarmAccount, headroom: Double)? in
                 guard account.key != active.key else { return nil }
+                guard account.canStartSessionWindow else { return nil }
                 guard let session = account.sessionWindow else { return nil }
                 // A reset instant means the 5-hour clock is already running. Kicking then spends a
                 // message to start something that started without us, which is the one failure this

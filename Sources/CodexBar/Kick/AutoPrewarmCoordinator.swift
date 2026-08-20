@@ -6,12 +6,13 @@ import Foundation
 ///
 /// ### What it can reach
 ///
-/// Only Claude **token accounts** — the ones whose OAuth token the user pasted into CodexBar
-/// themselves. That is not a shortcut, it is the whole of what is addressable: `claude-swap`
-/// accounts keep their credentials inside the `cswap` subprocess and hand CodexBar percentages
-/// only, and the ambient Claude Code login is by definition the one already active. Reaching a
-/// dormant claude-swap account would mean either becoming a second credential vault or switching
-/// the machine's live Claude login in the background, both of which
+/// Only Claude **token accounts**, and only those holding an OAuth token the user pasted into
+/// CodexBar themselves — the same slot also stores web cookies and admin API keys, neither of
+/// which can send an inference request. That is not a shortcut, it is the whole of what is
+/// addressable: `claude-swap` accounts keep their credentials inside the `cswap` subprocess and
+/// hand CodexBar percentages only, and the ambient Claude Code login is by definition the one
+/// already active. Reaching a dormant claude-swap account would mean either becoming a second
+/// credential vault or switching the machine's live Claude login in the background, both of which
 /// `docs/claude-multi-account-and-status-items.md` rules out. So an account CodexBar cannot send a
 /// message on is simply never a candidate, and a user with no OAuth token accounts sees this
 /// feature do nothing at all.
@@ -131,7 +132,8 @@ final class AutoPrewarmCoordinator {
                 windows: snapshot.rankableWindows,
                 sessionWindow: snapshot.prewarmSessionWindow,
                 samples: self.samples[key] ?? [],
-                lastPrewarmedAt: self.store.lastPrewarmedAt(for: key))
+                lastPrewarmedAt: self.store.lastPrewarmedAt(for: key),
+                canStartSessionWindow: Self.canStartSessionWindow(entry.account))
         }
     }
 
@@ -139,6 +141,20 @@ final class AutoPrewarmCoordinator {
     /// relabelling. Never the label or an email: this key is written to local defaults.
     private static func key(for account: ProviderTokenAccount) -> String {
         "claude-token|\(account.id.uuidString)"
+    }
+
+    /// The same question ``KickCoordinator/kickClaudeTokenAccount(_:store:)`` answers before it
+    /// sends, asked early enough to keep an unsendable account out of the ranking.
+    ///
+    /// A Claude token account holds whatever the user pasted, and only one of the three things it
+    /// can be reaches the inference endpoint: web cookies and admin API keys are stored the same
+    /// way and cannot send a message. Classifying the string is pure — nothing is read from the
+    /// Keychain, Claude Code storage, or claude-swap — so this stays clear of the credential
+    /// boundary the rest of the feature is careful about.
+    private static func canStartSessionWindow(_ account: ProviderTokenAccount) -> Bool {
+        ClaudeCredentialRouting
+            .resolve(tokenAccountToken: account.token, manualCookieHeader: nil)
+            .oauthAccessToken != nil
     }
 
     /// Every outcome is said out loud, as with a manual kick. This one spends quota on an account
